@@ -1,7 +1,6 @@
 
 ## Library of functions for advanced tree manipulation and visualization using ggtree.
 
-## check if dependencies exist and if not, install them
 package_install <- function ( package ) {
   if (requireNamespace(package, quietly = TRUE)) {
       library(package, character.only = TRUE)
@@ -14,17 +13,21 @@ package_install <- function ( package ) {
 }
 
 
-## load dependencies
+## load dependencies - if not present will install them
 dependencies <- c("ape","phytools","treeio","TreeTools","ggstar","ggtree","ggplot2","dplyr","stringi","stringr")
 
 for ( i in dependencies ) { 
   package_install(i)
 }
 
+?grep
 
 ## read and order tree 
 read_tree <- function ( nwk ) {
   tree <- ape::read.tree(nwk)
+  
+  tree$tip.label = sub("AGAP","AGAP_", tree$tip.label)
+  
   t <- Preorder(tree)
   return (t)
 }
@@ -32,7 +35,7 @@ read_tree <- function ( nwk ) {
 
 ## print tree with node ids - very useful for multiple tasks
 node_ids <- function ( tree ) {
-  ggtree(tree, layout="circular") + geom_text(aes(label = node), size = 3)
+  ggtree(tree, layout="dendrogram") + geom_text(aes(label = node), size = 3) 
 }
 
 ## collapse nodes based on bootstrap support - returns a "phylo" object
@@ -82,25 +85,29 @@ bootstrap_circles <- function ( x ) {
 draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, reference1=NULL, reference2=NULL, bootstrap_legend=TRUE, ... ) {
   
   ## if species matches reference discard from rest of tip labels - at least two references, adjust for more
-  if (!is.null(reference2)) {
-      reference <- c(reference1, reference2)
-      ref_idx <- grep(paste(reference, collapse = "|"), tree$tip.label) 
-  }
-  
-  if (is.null(reference2) & !is.null(reference1)) {
-      reference <- reference1
-      ref_idx <- grep(paste(reference), tree$tip.label) 
-  }
-  
-  ref_labs <- tree$tip.label[ref_idx]
-  ref_species <- data.frame(node=ref_idx, name= c(sub("_.*","",ref_labs)), label=ref_labs)
-  species <- sub("_.*","",tree$tip.label[-ref_idx])
-  
+
   if (is.null(reference1) & is.null(reference2)) {
       ref_labs <- NULL
       ref_species <- NULL
       ref_idx <- NULL
       species <- sub("_.*","",tree$tip.label)
+  }
+  
+  else {  
+    
+    if (!is.null(reference2)) {
+        reference <- c(reference1, reference2)
+        ref_idx <- grep(paste(reference, collapse = "|"), tree$tip.label) 
+      }
+        
+    if (is.null(reference2) & !is.null(reference1)) {
+        reference <- reference1
+        ref_idx <- grep(paste(reference), tree$tip.label) 
+      }
+        
+      ref_labs <- tree$tip.label[ref_idx]
+      ref_species <- data.frame(node=ref_idx, name= c(sub("_.*","",ref_labs)), label=ref_labs)
+      species <- sub("_.*","",tree$tip.label[-ref_idx])
   }
   
   ## get index of identified species
@@ -167,12 +174,20 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
       bootstrap_legend = "none"
   }
   
-  if ( !is.null(node3) ) {
+  if ( !is.null(node3) && !is.null(node2) && !is.null(node1) ) {
     highlights <- c("olivedrab2","rosybrown1","wheat1")
   }
   
-  else {
+  if ( !is.null(node2) && !is.null(node1) ) {
     highlights <- c("rosybrown1","wheat1")
+  }
+  
+  if (!is.null(node1)) {
+    highlights <- c("wheat1")
+  }
+  
+  else {
+    highlights <- NULL
   }
   
   root <- rootnode(tree)
