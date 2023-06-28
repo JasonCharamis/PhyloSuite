@@ -185,7 +185,7 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
   }
   
   else {
-    highlights <- NULL
+    highlights <- "none"
   }
   
   root <- rootnode(tree)
