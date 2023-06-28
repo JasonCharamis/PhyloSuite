@@ -20,8 +20,6 @@ for ( i in dependencies ) {
   package_install(i)
 }
 
-?grep
-
 ## read and order tree 
 read_tree <- function ( nwk ) {
   tree <- ape::read.tree(nwk)
