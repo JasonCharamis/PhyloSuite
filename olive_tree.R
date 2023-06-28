@@ -85,19 +85,19 @@ draw_single_tree <- function ( tree, node1="", node2="", node3="", reference1=""
                     sergenti= "orange",
                     tobbi= "red")
   
-  ## shape mappings
-  tip_label_shape <- c(arabicus="circle",
-                       argentipes="circle",
-                       duboscqi="circle",
-                       longipalpis="square", 
-                       migonei="square",
-                       orientalis="circle",
-                       papatasi="circle",
-                       perniciosus="circle",
-                       schwetzi="regular triangle",
-                       sergenti="circle",
-                       tobbi="circle"
-  )
+## shape mappings
+tip_label_shape <- c(arabicus="15",
+                     argentipes="15",
+                     duboscqi="15",
+                     longipalpis="13", 
+                     migonei="13",
+                     orientalis="15",
+                     papatasi="15",
+                     perniciosus="15",
+                     schwetzi="10",
+                     sergenti="15",
+                     tobbi="15"
+                     )
   
   ## create associative dataframes of tip color and shape 
   tip_colors_df <- data.frame(label = tree$tip.label[-species_idx], species=species, colour = group_colors[match(species, unique_species)])
