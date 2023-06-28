@@ -18,7 +18,7 @@ dependencies <- c("ape","phytools","treeio","TreeTools","ggstar","ggtree","ggplo
 
 for ( i in dependencies ) { 
   package_install(i)
-  }
+}
 
 
 ## read and order tree 
@@ -37,7 +37,7 @@ node_ids <- function ( tree ) {
 ## collapse nodes based on bootstrap support - returns a "phylo" object
 bootstrap_collapse <- function ( tree, cutoff ) { 
   return ( as.polytomy(tree, feature='node.label', fun=function(x) as.numeric(x) < cutoff) )
-  }
+}
 
 
 #flip based on descendant nodes (internal nodes or leaves if node is terminal)
@@ -75,6 +75,7 @@ bootstrap_circles <- function ( x ) {
                   b_color = bootstrap_colors[match( cut(bs_tibble$bootstrap, c(0, 50, 75, 100)), categories)] ) ## assign each node to a support category with associated color
   return (p)
 }
+
 
 ## visualize tree with a wide variety of options and customizable features
 draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, reference1=NULL, reference2=NULL, bootstrap_legend=TRUE, ... ) {
@@ -185,16 +186,6 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
 }
 
 
-draw_pairs <- function (fig1, fig2, horizontal = F, ...) {
-  package_install("gridExtra")
-  
-  if ( horizontal == T) {
-    multi_panel_figure <- grid.arrange( fig1, fig2, nrow = 2)
-  }
-  
-  else {
-    multi_panel_figure <- grid.arrange(fig1, fig2, nrow = 1)
-  }
-}
+
 
 
