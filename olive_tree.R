@@ -1,6 +1,7 @@
 
 ## Library of functions for advanced tree manipulation and visualization using ggtree.
 
+## check if dependencies exist and if not, install them
 package_install <- function ( package ) {
   if (requireNamespace(package, quietly = TRUE)) {
       library(package, character.only = TRUE)
@@ -13,7 +14,7 @@ package_install <- function ( package ) {
 }
 
 
-## load dependencies - if not present will install them
+## load dependencies
 dependencies <- c("ape","phytools","treeio","TreeTools","ggstar","ggtree","ggplot2","dplyr","stringi","stringr")
 
 for ( i in dependencies ) { 
