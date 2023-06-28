@@ -1,4 +1,4 @@
-## Library of functions for advanced tree manipulation and visualization using ggtree.
+## Library of functions for advanced tree manipulation and visualization using a variety of R packages.
 
 ## load dependencies
 ## tree manipulation and visualization related
@@ -64,8 +64,6 @@ draw_single_tree <- function ( tree, node1="", node2="", node3="", reference1=""
   species_idx <- grep(paste(reference, collapse = "|"), tree$tip.label)
   ref_labs <- tree$tip.label[species_idx]
   ref_species <- data.frame(node=species_idx, name= c(sub("_.*","",ref_labs)), label=ref_labs)
-  no_map_sp <- c(sub("_.*","",tree$tip.label[species_idx]))
-  unique_nomap <- sort (unique(no_map_sp))
 
   ## else, keep name for tip color and shape mapping per species
   species <- sub("_.*","",tree$tip.label[-species_idx])
@@ -85,20 +83,19 @@ draw_single_tree <- function ( tree, node1="", node2="", node3="", reference1=""
                     sergenti= "orange",
                     tobbi= "red")
   
-## shape mappings
-tip_label_shape <- c(arabicus="15",
-                     argentipes="15",
-                     duboscqi="15",
-                     longipalpis="13", 
-                     migonei="13",
-                     orientalis="15",
-                     papatasi="15",
-                     perniciosus="15",
-                     schwetzi="10",
-                     sergenti="15",
-                     tobbi="15"
-                     )
-  
+  ## shape mappings
+  tip_label_shape <- c(arabicus="15",
+                       argentipes="15",
+                       duboscqi="15",
+                       longipalpis="13", 
+                       migonei="13",
+                       orientalis="15",
+                       papatasi="15",
+                       perniciosus="15",
+                       schwetzi="10",
+                       sergenti="15",
+                       tobbi="15"
+  )
   ## create associative dataframes of tip color and shape 
   tip_colors_df <- data.frame(label = tree$tip.label[-species_idx], species=species, colour = group_colors[match(species, unique_species)])
   tip_shapes_df <- data.frame(label = tree$tip.label[-species_idx], species=species, shape=tip_label_shape[match(species, unique_species)])
@@ -120,6 +117,7 @@ tip_label_shape <- c(arabicus="15",
   
   node_ids(tree) ## print the node ids to select which nodes to highlight
   
+  root <- rootnode(tree)
   ## draw tree with bootstrap nodes, color and shape mappings, and highlighted nodes
   ggtree(x) + geom_star(aes(x,subset=isTip,starshape=shape, fill=species.x), size=3, show.legend = F) +
     geom_point2(aes(subset=!isTip & node != root, fill=category), shape=21, size=2) + theme_tree(legend.position=c(0.8, 0.2)) +
