@@ -38,12 +38,12 @@ bootstrap_collapse <- function ( tree, cutoff ) {
 #flip based on descendant nodes (internal nodes or leaves if node is terminal)
 flip_node <- function (tree, node1, node2) {
     flipped_tree <- flip(ggtree(tree), node1, node2)
-    return (as.phylo(flipped_tree))
+    return ( as.phylo(flipped_tree) )
 }
 
 
 ## group all descendant branches of node(s)
-group_descendants <- function (tree, node1, node2="", node3="",node4="") {
+group_descendants <- function (tree, node1, node2=NULL, node3=NULL, node4=NULL) {
     tree <- groupClade(tree, .node=c(node1, node2, node3, node4))
     return ( tree )
 }
@@ -127,8 +127,7 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, reference1=NULL, re
                        perniciosus="15",
                        schwetzi="10",
                        sergenti="15",
-                       tobbi="15"
-  )
+                       tobbi="15")
   
   
   ## create associative dataframes of tip color and shape 
@@ -147,7 +146,10 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, reference1=NULL, re
   bootstrap_colors <- c('(75,100]' = "black",
                         '(50,75]' = "grey",
                         '(0,50]' = "snow2")
-  
+
+  root <- rootnode(tree)
+
+  ## Decide if you want to print bootstrap legend or not
   if (bootstrap_legend == TRUE) {
       bootstrap_legend = 'legend'
   }
@@ -156,8 +158,6 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, reference1=NULL, re
       bootstrap_legend = "none"
   }
   
-  root <- rootnode(tree)
-
   nodes <- as.character(x@data$node)
   
   ## draw tree with bootstrap nodes, color and shape mappings, and highlighted nodes
