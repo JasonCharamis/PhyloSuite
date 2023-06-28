@@ -1,0 +1,131 @@
+## Library of functions for advanced tree manipulation and visualization using ggtree.
+
+## load dependencies
+## tree manipulation and visualization related
+library("ape")
+library("phytools")
+library("treeio")
+library("TreeTools")
+library("ggstar")
+library("ggtree")
+
+# regex related
+library("dplyr")
+library("stringi")
+library("stringr")
+
+
+## read and order tree 
+read_tree <- function ( nwk ) {
+  tree <- ape::read.tree(nwk)
+  t <- Preorder(tree)
+  return (t)
+}
+
+
+## print tree with node ids - very useful for multiple tasks
+node_ids <- function ( tree ) {
+  ggtree(tree, layout="circular") + geom_text(aes(label = node), size = 3)
+}
+
+## collapse nodes based on bootstrap support - returns a "phylo" object
+bootstrap_collapse <- function ( tree, cutoff ) { 
+  return ( as.polytomy(tree, feature='node.label', fun=function(x) as.numeric(x) < cutoff) )
+  }
+
+
+#flip based on descendant nodes (internal nodes or leaves if node is terminal)
+flip_node <- function (tree, node1, node2) {
+      flipped_tree <- flip(ggtree(tree), node1, node2)
+      return (flipped_tree)
+}
+
+
+## extract subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
+extract_subtree <- function (t, tip1, tip2) {
+  subtree <- ape::extract.clade(t,node = phytools::findMRCA(t,c(tip1, tip2)))
+  return ( subtree )
+}
+
+
+## include bootstrap values as colored circles
+bootstrap_circles <- function ( x ) {
+  bs_tibble <- tibble( node=1:Nnode(x@phylo) + Ntip(x@phylo), bootstrap = as.numeric(x@phylo$node.label), cut(bootstrap,c(0, 50, 75, 100))) ## create dataframe with bootstrap support for each node
+  p <- data.frame(node=bs_tibble$node, bootstrap=as.numeric(bs_tibble$bootstrap), category = cut(bs_tibble$bootstrap, c(0, 50, 75, 100)), 
+                  b_color = bootstrap_colors[match( cut(bs_tibble$bootstrap, c(0, 50, 75, 100)), categories)] ) ## assign each node to a support category with associated color
+  return (p)
+}
+
+## visualize tree with a wide variety of options and customizable features
+draw_single_tree <- function ( tree, node1="", node2="", node3="", reference1="", reference2="" ) {
+  
+  ## if species matches reference discard from rest of tip labels
+  reference <- c(reference1, reference2)
+  species_idx <- grep(paste(reference, collapse = "|"), tree$tip.label)
+  ref_labs <- tree$tip.label[species_idx]
+  ref_species <- data.frame(node=species_idx, name= c(sub("_.*","",ref_labs)), label=ref_labs)
+  no_map_sp <- c(sub("_.*","",tree$tip.label[species_idx]))
+  unique_nomap <- sort (unique(no_map_sp))
+
+  ## else, keep name for tip color and shape mapping per species
+  species <- sub("_.*","",tree$tip.label[-species_idx])
+  unique_species <- sort(unique(species))
+  
+  ## customize tip colors and shapes 
+  ## ideally species names should be sorted to always make correct color and shape mappings
+  group_colors <- c(arabicus="purple",
+                    argentipes= "cyan",
+                    duboscqi="salmon2",
+                    longipalpis="darkgreen",
+                    migonei= "green",
+                    orientalis= "gold",
+                    papatasi= "darkred",
+                    perniciosus= "lightgreen",
+                    schwetzi ="blue",
+                    sergenti= "orange",
+                    tobbi= "red")
+  
+  ## shape mappings
+  tip_label_shape <- c(arabicus="circle",
+                       argentipes="circle",
+                       duboscqi="circle",
+                       longipalpis="square", 
+                       migonei="square",
+                       orientalis="circle",
+                       papatasi="circle",
+                       perniciosus="circle",
+                       schwetzi="regular triangle",
+                       sergenti="circle",
+                       tobbi="circle"
+  )
+  
+  ## create associative dataframes of tip color and shape 
+  tip_colors_df <- data.frame(label = tree$tip.label[-species_idx], species=species, colour = group_colors[match(species, unique_species)])
+  tip_shapes_df <- data.frame(label = tree$tip.label[-species_idx], species=species, shape=tip_label_shape[match(species, unique_species)])
+
+  ## join tip colors and shapes in tree object based on tip label
+  x <- data.frame()
+  x <- full_join(tree, tip_colors_df, by='label')
+  x <- full_join(x, tip_shapes_df, by='label')
+
+  ## include bootstrap values as circles 
+  bs_values <- bootstrap_circles (x)
+  x <- full_join(x, bs_values, by='node')
+  
+  bootstrap_colors <- c('(75,100]' = "black",
+                        '(50,75]' = "grey",
+                        '(0,50]' = "snow2")
+  
+  categories <- c('(75,100]' ,'(50,75]','(0,50]')
+  
+  node_ids(tree) ## print the node ids to select which nodes to highlight
+  
+  ## draw tree with bootstrap nodes, color and shape mappings, and highlighted nodes
+  ggtree(x) + geom_star(aes(x,subset=isTip,starshape=shape, fill=species.x), size=3, show.legend = F) +
+    geom_point2(aes(subset=!isTip & node != root, fill=category), shape=21, size=2) + theme_tree(legend.position=c(0.8, 0.2)) +
+    scale_fill_manual(values=c(group_colors,bootstrap_colors), guide='legend', name='Bootstrap Support (BS)',
+                      breaks=c('(75,100]', '(50,75]', '(0,50]'), labels=expression("BS >=75", "50 <= BS < 75", "BS < 50")) +
+    geom_highlight(node=c( node1, node2, node3), fill=c("palegreen2","rosybrown1","wheat1"), alpha=0.3, extend=0.10, linetype=23, colour="black") +
+    geom_text(aes(label = ifelse(nodes %in% ref_species$node, ref_species$name, "")), 
+              position = position_nudge(x = 0.08), vjust = 0.5, hjust=0.9, size = 3.5, family="Arial", fontface="bold")
+}
