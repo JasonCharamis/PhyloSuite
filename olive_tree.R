@@ -1,17 +1,25 @@
 
 ## Library of functions for advanced tree manipulation and visualization using ggtree.
 
-package_install <- function ( package ) {
-  if (requireNamespace(package, quietly = TRUE)) {
-      library(package, character.only = TRUE)
+package_install <- function ( package_name ) {
+  if (requireNamespace(package_name, quietly = TRUE)) {
+    library(package_name, character.only = TRUE)
   }
   
   else {
-    print ( (sprintf("%s %s",package, "is not installed. Installing it!")))
-    BiocManager::install(package)  
+    print ( (sprintf("%s %s",package_name, "is not installed. Installing it!")))
+    is_available <- BiocManager::available(package_name)
+    
+    if ( is_available == "TRUE" ) {
+      BiocManager::install(package_name)
+    }
+    
+    else {
+      install.packages(package_name)
+    }
+    
   }
 }
-
 
 ## load dependencies - if not present will install them
 dependencies <- c("ape","phytools","treeio","TreeTools","ggstar","ggtree","ggplot2","dplyr","stringi","stringr")
@@ -156,6 +164,11 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
   bs_values <- bootstrap_circles (x)
   x <- full_join(x, bs_values, by='node')
   
+  print (as_tibble(x))
+  
+  ## write tree with features to dataframe
+  #write.table(as_tibble(x) , file = sprintf ("%s %s", tree, "olive_tree_df.tsv"), sep="\t", row.names=FALSE)
+  
   bootstrap_colors <- c('(75,100]' = "black",
                         '(50,75]' = "grey",
                         '(0,50]' = "snow2")
@@ -172,20 +185,21 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
       bootstrap_legend = "none"
   }
   
+  ## highlight colors for different number of selected nodes
   if ( !is.null(node3) && !is.null(node2) && !is.null(node1) ) {
     highlights <- c("olivedrab2","rosybrown1","wheat1")
   }
   
-  if ( !is.null(node2) && !is.null(node1) ) {
+  if ( is.null(node3) && !is.null(node2) && !is.null(node1) ) {
     highlights <- c("rosybrown1","wheat1")
   }
   
-  if (!is.null(node1)) {
-    highlights <- c("wheat1")
+  if ( is.null(node3) && is.null(node2) && !is.null(node1) ) {
+    highlights <- "wheat1"
   }
   
-  else {
-    highlights <- "none"
+  if ( is.null(node3) && is.null(node2) && is.null(node1) ) {
+    highlights <- NULL
   }
   
   root <- rootnode(tree)
@@ -198,8 +212,3 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
     geom_text(aes(label = ifelse(nodes %in% ref_species$node, ref_species$name, "")), 
               position = position_nudge(x = 0.08), vjust = 0.5, hjust=0.9, size = 3.5, family="Arial", fontface="bold")
 }
-
-
-
-
-
