@@ -1,5 +1,5 @@
 
-## Library of functions for advanced tree manipulation and visualization using ggtree.
+## Library of functions for advanced tree manipulation and visualization using ggtree, ape, phytools and other related tools.
 
 package_install <- function ( package_name ) {
   if (requireNamespace(package_name, quietly = TRUE)) {
