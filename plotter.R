@@ -8,7 +8,7 @@ package_install <- function ( package_name ) {
   else {
     print ( (sprintf("%s %s",package_name, "is not installed. Installing it!")))
 
-    if ( BiocManager::available(package_name) ) {
+    if ( package_name %in% BiocManager::available() ) {
       BiocManager::install(package_name)
     }
     
@@ -25,15 +25,20 @@ for ( i in dependencies ) {
   package_install(i)
 }
 
-draw_pairs <- function (fig1, fig2, horizontal = "F", ...) {
+
+multipanel <- function ( horizontal = "T", ... ) {
   package_install("gridExtra")
+
+  plots <- list(...)
   
+  ## arrange horizontally
   if ( horizontal == "T") {
-    multi_panel_figure <- grid.arrange( fig1, fig2, nrow = 2, ncol = 1)
+    multi_panel_figure <- grid.arrange(grobs = plots, ncol = length(plots), nrow = 1)
   }
   
+  ## arrange vectically
   else {
-    multi_panel_figure <- grid.arrange(fig1, fig2, nrow = 1, ncol = 2)
+    multi_panel_figure <- grid.arrange(grobs = plots, nrow = length(plots), ncol = 1)
   }
   return (multi_panel_figure)
 }
