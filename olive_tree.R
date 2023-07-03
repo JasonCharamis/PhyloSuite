@@ -1,6 +1,5 @@
 
 ## Library of functions for advanced tree manipulation and visualization using ggtree, ape, phytools and other related tools.
-
 package_install <- function ( package_name ) {
   if (requireNamespace(package_name, quietly = TRUE)) {
     library(package_name, character.only = TRUE)
@@ -87,8 +86,14 @@ bootstrap_circles <- function ( x ) {
 }
 
 
+#if ( group_colors == NULL && tip_label_shape == NULL ) {
+#   star <- NULL
+#}
+
+
 ## visualize tree with a wide variety of options and customizable features
-draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, reference1=NULL, reference2=NULL, bootstrap_legend=TRUE, ... ) {
+draw_single_tree <- function ( tree, color=NULL, shape=NULL, node1=NULL, node2=NULL, node3=NULL, reference1=NULL, reference2=NULL, bootstrap_legend=TRUE, ... ) {
+  
   
   ## if species matches reference discard from rest of tip labels - at least two references, adjust for more
 
@@ -122,38 +127,9 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
   ## else, keep name for tip color and shape mapping per species
   unique_species <- sort(unique(species))
   
-  ## customize tip colors and shapes 
-  ## ideally species names should be sorted to always make correct color and shape mappings
-  group_colors <- c(arabicus="purple",
-                    argentipes= "cyan",
-                    duboscqi="salmon2",
-                    longipalpis="darkgreen",
-                    migonei= "green",
-                    orientalis= "gold",
-                    papatasi= "darkred",
-                    perniciosus= "lightgreen",
-                    schwetzi ="blue",
-                    sergenti= "orange",
-                    tobbi= "red")
-  
-  ## shape mappings
-  tip_label_shape <- c(arabicus="15",
-                       argentipes="15",
-                       duboscqi="15",
-                       longipalpis="13", 
-                       migonei="13",
-                       orientalis="15",
-                       papatasi="15",
-                       perniciosus="15",
-                       schwetzi="10",
-                       sergenti="15",
-                       tobbi="15"
-  )
-  
-  
   ## create associative dataframes of tip color and shape 
-  tip_colors_df <- data.frame(label = tree$tip.label[species_idx], species=species, colour = group_colors[match(species, unique_species)])
-  tip_shapes_df <- data.frame(label = tree$tip.label[species_idx], species=species, shape=tip_label_shape[match(species, unique_species)])
+  tip_colors_df <- data.frame(label = tree$tip.label[species_idx], species=species, colour = color[match(species, unique_species)])
+  tip_shapes_df <- data.frame(label = tree$tip.label[species_idx], species=species, shape= shape[match(species, unique_species)])
 
   ## join tip colors and shapes in tree object based on tip label
   x <- data.frame()
@@ -163,8 +139,6 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
   ## include bootstrap values as circles 
   bs_values <- bootstrap_circles (x)
   x <- full_join(x, bs_values, by='node')
-  
-  print (as_tibble(x))
   
   ## write tree with features to dataframe
   #write.table(as_tibble(x) , file = sprintf ("%s %s", tree, "olive_tree_df.tsv"), sep="\t", row.names=FALSE)
@@ -206,7 +180,7 @@ draw_single_tree <- function ( tree, node1=NULL, node2=NULL, node3=NULL, referen
   ## draw tree with bootstrap nodes, color and shape mappings, and highlighted nodes
   ggtree(x) + geom_star(aes(x,subset=isTip,starshape=shape, fill=species.x), size=3, show.legend = F) +
     geom_point2(aes(subset=!isTip & node != root, fill=category), shape=21, size=2) + theme_tree(legend.position=c(0.8, 0.2)) +
-    scale_fill_manual(values=c(group_colors,bootstrap_colors), guide=bootstrap_legend, name='Bootstrap Support (BS)',
+    scale_fill_manual(values=c(color,bootstrap_colors), guide=bootstrap_legend, name='Bootstrap Support (BS)',
                       breaks=c('(75,100]', '(50,75]', '(0,50]'), labels=expression("BS >=75", "50 <= BS < 75", "BS < 50")) +
     geom_highlight(node=c( node1, node2, node3), fill=highlights, alpha=0.3, extend=0.10, linetype=23, colour="black") +
     geom_text(aes(label = ifelse(nodes %in% ref_species$node, ref_species$name, "")), 
