@@ -18,8 +18,8 @@ package_install <- function(package_name) {
 
 # Load required packages or install them if necessary
 dependencies <- c(
-  "ape", "phytools", "treeio", "TreeTools", "ggstar", "ggtree",
-  "ggplot2", "dplyr", "stringi", "stringr"
+  "ape", "phytools", "treeio", "TreeTools", "ggstar", 
+  "ggtree", "ggplot2", "dplyr", "stringi", "stringr"
 )
 
 for (pkg in dependencies) {
