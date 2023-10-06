@@ -6,7 +6,7 @@ Contains functions for:
 1. Reading and manipulating tree objects
 2. Extracting subtrees using two anchor nodes
 3. Visualizing trees with highlighted nodes
-4. Visualizing trees with tip label color and shape mappings, bootstrap colors and specific clades.
+4. Visualizing trees with tip label color and shape mappings, bootstrap colors and specific clades
 
 Load functions using:
 source("oliveTree.R")
