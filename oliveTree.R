@@ -36,12 +36,12 @@ read_tree <- function(nwk) {
 }
 
 # Function to print a tree with node IDs
-node_ids <- function(tree, reference = "") {
+node_ids <- function(tree, reference = NULL) {
   # Create the base tree plot with node labels
   tree_plot <- ggtree(tree, layout = "rectangular") + 
     geom_nodelab(aes(label = node), hjust = -0.1, color = "red")
   
-  if (length(reference) == 0) {
+  if (is.null(reference)) {
     return(tree_plot) 
   } else {
     # Filter the tips based on the reference string
@@ -56,9 +56,6 @@ node_ids <- function(tree, reference = "") {
     return(labeled_tree)
   }
 }
-
-?geom_tiplab
-
 
 # Function to collapse nodes based on bootstrap support, returns a "phylo" object
 bootstrap_collapse <- function(tree, cutoff) { 
