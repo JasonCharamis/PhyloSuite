@@ -31,7 +31,6 @@ for (pkg in dependencies) {
 # Function to read and preprocess a tree
 read_tree <- function(nwk) {
   tree <- ape::read.tree(nwk)
-  tree$tip.label <- sub("AGAP", "AGAP_", tree$tip.label)
   return(Preorder(tree))
 }
 
@@ -74,12 +73,10 @@ group_descendants <- function(tree, node1, node2 = "", node3 = "", node4 = "") {
 
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
 extract_subtree <- function(t, tip1, tip2, bl = TRUE) {
-  if (bl == "TRUE" | bl == "T") {
-    return(ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1, tip2))))
-  } else {
+  if (!(bl == "TRUE" || bl == "T")) {
     t$edge.length <- NULL
-    return(ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1, tip2))))
-  }
+  } 
+  return(ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1, tip2))))
 }
 
 #==================================== TREE VISUALIZATION FUNCTIONS ====================================#
