@@ -1,4 +1,4 @@
-# Library of functions for advanced tree manipulation and visualization using ggtree, ape, phytools, and other related tools.
+#Library of functions for advanced tree manipulation and visualization using ggtree, ape, phytools, and other related tools.
 
 # Function to check if a package is installed, and if not, install it.
 package_install <- function(package_name) {
@@ -8,10 +8,10 @@ package_install <- function(package_name) {
     print(sprintf("%s %s", package_name, "is not installed. Installing it!"))
     is_available <- BiocManager::available(package_name)
     
-    if (is_available == "TRUE") {
-      BiocManager::install(package_name)
+    if (any(is_available == "TRUE")) {
+      BiocManager::install(package_name, dependencies = TRUE, update = TRUE)
     } else {
-      install.packages(package_name)
+      install.packages(package_name, dependencies = TRUE, reinstall = TRUE)
     }
   }
 }
