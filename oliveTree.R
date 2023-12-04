@@ -10,21 +10,37 @@ package_install <- function(package_name) {
     
     if (any(is_available == "TRUE")) {
       BiocManager::install(package_name, dependencies = TRUE, update = TRUE)
-    } else {
-      install.packages(package_name, dependencies = TRUE, reinstall = TRUE)
+      } else {
+        install.packages(package_name, dependencies = TRUE, ask = FALSE, reinstall = TRUE)
     }
   }
 }
 
+find_previous_versions <- function () {
+  tmp = as.data.frame(installed.packages()) 
+  max_version = max(as.numeric(substr(tmp$Built, 1,1)))
+  tmp = tmp[as.numeric(substr(tmp$Built, 1,1)) < max_version,]
+  lapply(tmp$Package, remove.packages)
+  lapply(tmp$Package, function(x) install.packages(x, dependencies = TRUE))
+}
+BiocManager::install("devtools")
+
+library(BiocManager)
+BiocManager::install("ggmsa")
+
+
+find_previous_versions()
+
 # Load required packages or install them if necessary
-dependencies <- c(
-  "ape", "phytools", "treeio", "TreeTools", "ggstar", 
-  "ggtree", "ggplot2", "dplyr", "stringi", "stringr"
-)
+dependencies <- c("ape", "phytools", "treeio", "TreeTools", "ggstar", 
+                  "ggtree", "ggplot2", "dplyr", "stringi", "stringr")
 
 for (pkg in dependencies) {
   package_install(pkg)
 }
+
+install.packages(names(dependencies_list), dependencies = TRUE)
+
 
 #==================================== TREE MANIPULATION FUNCTIONS ====================================#
 
