@@ -1,0 +1,90 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job               count
+--------------  -------
+all                   1
+convert               1
+mafft                 1
+midpoint_root         1
+model_test            1
+pythia                1
+raxml                 1
+trimal                1
+visualize_tree        1
+total                 9
+
+Resources before job selection: {'_cores': 1, '_nodes': 9223372036854775807}
+Ready jobs (1)
+Select jobs to execute...
+Selected jobs (1)
+Resources after job selection: {'_cores': 0, '_nodes': 9223372036854775806}
+
+[Thu Dec 14 12:16:58 2023]
+rule mafft:
+    input: all_genes.fasta
+    output: all_genes.aln
+    jobid: 6
+    reason: Missing output files: all_genes.aln
+    resources: tmpdir=/tmp
+
+Full Traceback (most recent call last):
+  File "/home/jason/.local/lib/python3.8/site-packages/snakemake/executors/__init__.py", line 2656, in run_wrapper
+    run(
+  File "/home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile", line 63, in __rule_mafft
+    rtn=config['random_tree_number'],
+  File "/home/jason/.local/lib/python3.8/site-packages/snakemake/shell.py", line 294, in __new__
+    raise sp.CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command 'set -euo pipefail;  mafft --auto all_genes.fasta > all_genes.aln' returned non-zero exit status 127.
+
+[Thu Dec 14 12:16:58 2023]
+Error in rule mafft:
+    jobid: 6
+    input: all_genes.fasta
+    output: all_genes.aln
+    conda-env: /home/jason/bin/RAxML-NG-and-Friends/workflow/.snakemake/conda/26b3e121a4f4b3a224d89c0e905070fd_
+    shell:
+        mafft --auto all_genes.fasta > all_genes.aln
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Full Traceback (most recent call last):
+  File "/home/jason/.local/lib/python3.8/site-packages/snakemake/executors/__init__.py", line 2656, in run_wrapper
+    run(
+  File "/home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile", line 63, in __rule_mafft
+    rtn=config['random_tree_number'],
+  File "/home/jason/.local/lib/python3.8/site-packages/snakemake/shell.py", line 294, in __new__
+    raise sp.CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command 'set -euo pipefail;  mafft --auto all_genes.fasta > all_genes.aln' returned non-zero exit status 127.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jason/.local/lib/python3.8/site-packages/snakemake/executors/__init__.py", line 715, in _callback
+    raise ex
+  File "/usr/lib/python3.8/concurrent/futures/thread.py", line 57, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/home/jason/.local/lib/python3.8/site-packages/snakemake/executors/__init__.py", line 699, in cached_or_run
+    run_func(*args)
+  File "/home/jason/.local/lib/python3.8/site-packages/snakemake/executors/__init__.py", line 2692, in run_wrapper
+    raise RuleException(
+snakemake.exceptions.RuleException: CalledProcessError in file /home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile, line 27:
+Command 'set -euo pipefail;  mafft --auto all_genes.fasta > all_genes.aln' returned non-zero exit status 127.
+  File "/home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile", line 27, in __rule_mafft
+
+RuleException:
+CalledProcessError in file /home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile, line 27:
+Command 'set -euo pipefail;  mafft --auto all_genes.fasta > all_genes.aln' returned non-zero exit status 127.
+  File "/home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile", line 27, in __rule_mafft
+  File "/usr/lib/python3.8/concurrent/futures/thread.py", line 57, in run
+Removing output files of failed job mafft since they might be corrupted:
+all_genes.aln
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2023-12-14T121657.926800.snakemake.log
+unlocking
+removing lock
+removing lock
+removed all locks

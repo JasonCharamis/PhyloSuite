@@ -1,0 +1,39 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Conda environments: ignored
+Job stats:
+job               count
+--------------  -------
+all                   1
+concatenate           1
+convert               1
+mafft                 1
+midpoint_root         1
+model_test            1
+pythia                1
+raxml                 1
+trimal                1
+visualize_tree        1
+total                10
+
+Select jobs to execute...
+
+[Thu Dec 14 12:16:35 2023]
+rule concatenate:
+    output: all_genes.fasta
+    jobid: 7
+    reason: Missing output files: all_genes.fasta
+    resources: tmpdir=/tmp
+
+Terminating processes on user request, this might take some time.
+[Thu Dec 14 12:16:54 2023]
+Error in rule concatenate:
+    jobid: 7
+    output: all_genes.fasta
+    shell:
+         cat  > all_genes.fasta 
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Complete log: .snakemake/log/2023-12-14T121635.377709.snakemake.log
