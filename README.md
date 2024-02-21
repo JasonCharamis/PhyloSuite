@@ -1,13 +1,2 @@
 # OliveTree
-Library of functions for efficient tree manipulation and beautiful visualization in R, which makes use of the most advanced capabilities of ggtree (https://github.com/YuLab-SMU/ggtree).
-
-Contains functions for:
-
-1. Reading and manipulating tree objects
-2. Extracting subtrees using two anchor nodes
-3. Visualizing trees with highlighted nodes
-4. Visualizing trees with tip label color and shape mappings, bootstrap colors and specific clades
-
-Load functions using:
-source("oliveTree.R")
-
+Suite of three complementary tools, RAxML-NG-and-Friends, ETElib and OliveTree, which have been designed to streamline the analysis, manipulation and advanced visualization of phylogenetic data by combining the functionality of the most popular phylogenetic tools and frameworks. RAxML-NG-and-Friends is an automated Snakemake pipeline for performing Maximum Likelihood phylogenetic analysis using RAxML-NG and associated tools (PyPythia, ModelTest-NG). ETElib is a Python library with a number of useful functions for effective tree manipulation based on the ETE3 toolkit. OliveTree is a novel R library for advanced tree visualization by combining functionality from the ggtree, phytools, ape, treeio and TreeTools packages.
