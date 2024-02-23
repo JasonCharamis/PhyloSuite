@@ -1,45 +1,38 @@
 #Library of functions for advanced tree manipulation and visualization using ggtree, ape, phytools, and other related tools.
 
 # Function to check if a package is installed, and if not, install it.
-package_install <- function(package_name) {
-  if (requireNamespace(package_name, quietly = TRUE)) {
-    library(package_name, character.only = TRUE)
-  } else {
-    print(sprintf("%s %s", package_name, "is not installed. Installing it!"))
-    is_available <- BiocManager::available(package_name)
-    
-    if (any(is_available == "TRUE")) {
-      BiocManager::install(package_name, dependencies = TRUE, update = TRUE)
+# Function to install or load a package
+load_packages <- function( tools ) {
+  tmp <- as.data.frame(installed.packages()) 
+  max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
+  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ]
+
+  if ( is.vector(tools) == TRUE ) {
+    for ( pkg in tools ) {
+      if ( pkg %in% tmp$Package ) {
+        library(tools, character.only = TRUE)
       } else {
-        install.packages(package_name, dependencies = TRUE, ask = FALSE, reinstall = TRUE)
+          print(sprintf("%s %s", tools, "is not installed. Installing it!"))
+          is_available <- BiocManager::available(tools)
+          
+          if (any(is_available == "TRUE")) {
+            BiocManager::install(tools, dependencies = TRUE, update = TRUE)
+          } else {
+            install.packages(tools, dependencies = TRUE, ask = FALSE, reinstall = TRUE)
+        }
+      }
     }
   }
 }
 
-find_previous_versions <- function () {
-  tmp = as.data.frame(installed.packages()) 
-  max_version = max(as.numeric(substr(tmp$Built, 1,1)))
-  tmp = tmp[as.numeric(substr(tmp$Built, 1,1)) < max_version,]
-  lapply(tmp$Package, remove.packages)
-  lapply(tmp$Package, function(x) install.packages(x, dependencies = TRUE))
-}
-BiocManager::install("devtools")
-
-library(BiocManager)
-BiocManager::install("ggmsa")
-
-
-find_previous_versions()
-
 # Load required packages or install them if necessary
 dependencies <- c("ape", "phytools", "treeio", "TreeTools", "ggstar", 
-                  "ggtree", "ggplot2", "dplyr", "stringi", "stringr")
+                  "ggtree", "ggplot2", "dplyr", "stringi", "stringr",
+                  "tidytree")
 
-for (pkg in dependencies) {
-  package_install(pkg)
+for (d in dependencies ) {
+  load_packages(d)
 }
-
-install.packages(names(dependencies_list), dependencies = TRUE)
 
 
 #==================================== TREE MANIPULATION FUNCTIONS ====================================#
@@ -67,7 +60,6 @@ node_ids <- function(tree, reference = NULL) {
       aes(subset = label %in% tips_to_label, label = label, color = "red"), 
       geom = "label"
     )
-    
     return(labeled_tree)
   }
 }
@@ -99,21 +91,26 @@ extract_subtree <- function(t, tip1, tip2, bl = TRUE) {
 
 # Function to include bootstrap values as colored circles
 bootstrap_circles <- function(x) {
-  bootstrap_colors <- c('(75,100]' = "black", '(50,75]' = "grey", '(0,50]' = "snow2")
-  categories <- c('(75,100]', '(50,75]', '(0,50]')
   
-  bs_tibble <- tibble(
-    node = 1:Nnode(x@phylo) + Ntip(x@phylo),
-    bootstrap = as.numeric(x@phylo$node.label),
-    cut(bootstrap, c(0, 50, 75, 100))
-  ) 
-  
-  return(data.frame(
-    node = bs_tibble$node,
-    bootstrap = as.numeric(bs_tibble$bootstrap),
-    category = cut(bs_tibble$bootstrap, c(0, 50, 75, 100)),
-    b_color = bootstrap_colors[match(cut(bs_tibble$bootstrap, c(0, 50, 75, 100)), categories)]
-  )) 
+  if (!is.null(node.label(x))) {
+    bootstrap_colors <- c('(75,100]' = "black", '(50,75]' = "grey", '(0,50]' = "snow2")
+    categories <- c('(75,100]', '(50,75]', '(0,50]')
+
+    bs_tibble <- tibble(
+      node = 1:Nnode(x@phylo) + Ntip(x@phylo),
+      bootstrap = as.numeric(x@phylo$node.label),
+      cut(bootstrap, c(0, 50, 75, 100))
+    ) 
+    return(data.frame(
+      node = bs_tibble$node,
+      bootstrap = as.numeric(bs_tibble$bootstrap),
+      category = cut(bs_tibble$bootstrap, c(0, 50, 75, 100)),
+      b_color = bootstrap_colors[match(cut(bs_tibble$bootstrap, c(0, 50, 75, 100)), categories)]
+    ))
+  } else {
+      print ("Bootstrap values do not exist.")
+      return (NULL)
+    }
 }
 
 # Function to highlight nodes on a tree
@@ -154,7 +151,7 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
       )
     }
   } else {
-    stop("highlight_nodes must be either a list or a vector.")
+    stop("highlight_tree must be either a list or a vector.")
   }
   
   # Create the ggtree plot
@@ -199,85 +196,130 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
   }
 }
 
+# Node coloring is deprecated from the visualize_tree function and will be implemented only in the highlight_tree argument.
+# Now, I have to modify the code, to accept visualize tree objects in the highlight_tree function
 # Function to visualize a tree with a wide variety of options and customizable features
-visualize_tree <- function(tree, color = NULL, shape = NULL, node1 = NULL, node2 = NULL, node3 = NULL, 
-                           reference1 = NULL, reference2 = NULL, bootstrap_legend = TRUE, 
-                           clades = NULL, labels = NULL, fontsize = 7, labeldist = 0.1, ...) {
-  # Check if species matches reference and discard from the rest of tip labels - at least two references, adjust for more
-  if (is.null(reference1) & is.null(reference2)) {
-    ref_labs <- NULL
-    ref_species <- NULL
-    ref_idx <- NULL
-    species <- sub("_.*", "", tree$tip.label)
+# Reference taxons should be defined as reference = 'taxon_ID'.
+
+visualize_tree <- function(tree, color = NULL, shape = NULL, bootstrap_circles = TRUE,
+                           clades = NULL, labels = NULL, fontsize = 7, labeldist = 0.1, 
+                           ...) {
+
+  tree_df <- as_tibble(tree)
+
+  # Initialize graphics object
+  plot <- ggtree(tree) 
+  #+ geom_tiplab()
+  
+  # Manipulate tip labels to generate species and discard tip labels which match reference
+  references <- list(...)
+  reference_args <- names(references)
+  
+  if (length(reference_args) == 0) {
+    species_dict <- lapply(seq_along(tree$tip.label), function(i) {
+      list(tip_label = tree$tip.label[i], species = sub("_.*", "", tree$tip.label[i]))
+    })
   } else {  
-    if (!is.null(reference2)) {
-      reference <- c(reference1, reference2)
-      ref_idx <- grep(paste(reference, collapse = "|"), tree$tip.label) 
+    reference <- unlist(references)
+    ref_species <- tree$tip.label[tree$tip.label %in% reference]
+    non_ref_species <- tree$tip.label[!(tree$tip.label %in% reference)]
+    
+    species_dict <- lapply(non_ref_species, function(label) {
+      list(tip_label = label, species = sub("_.*", "", label))
+    })
+  }
+  
+  # Include text in reference species tip labels 
+  if ( !(length ( reference_args ) == 0) ) {
+    plot <- plot + geom_text(data = data.frame(tip_label = ref_species), aes(label = tip_label), 
+                             position = position_nudge(x = 0.08), vjust = 0.5, hjust = 0.9, size = 3.5, 
+                             family = "Arial", fontface = "bold")
+  }
+
+  if ( is.null(color) && is.null(shape) ) {
+    print ('No color or shape mappings provided. Will just print the phylogenetic tree.')
+  }
+  
+  # Add color and/or shape mappings
+  else {
+    species_names <- sapply(species_dict, function(entry) entry$species)
+    x <- data.frame()
+  
+    if ( !is.null(color) && !is.null(shape)) {
+        tip_colors_df <- data.frame(
+        label = sapply(species_dict, function(entry) entry$tip_label),
+        species_colors = species_names,
+        color = color[match(sapply(species_dict, function(entry) entry$species), unique(species_names))]
+      )
+      
+      tip_shapes_df <- data.frame(
+        label = sapply(species_dict, function(entry) entry$tip_label),
+        species_shapes = species_names,
+        shape = shape[match(sapply(species_dict, function(entry) entry$species), unique(species_names))]
+      )
+      
+      # Join tree, color and shapes dataframe columns to generate a unique mapping tibble df,
+      # which will be used as reference for producing the color and shape mappings in ggtree.
+      # Join tip colors and shapes in tree object based on tip label
+      
+      x <- full_join(tree_df, tip_colors_df, by = 'label')
+      x <- full_join(x, tip_shapes_df, by = 'label')
+      plot <- plot + geom_star(aes(x=x, subset = isTip, fill = species_colors, starshape = shape), size = 3, show.legend = TRUE)
     }
-    if (is.null(reference2) & !is.null(reference1)) {
-      reference <- reference1
-      ref_idx <- grep(paste(reference), tree$tip.label) 
+    
+    if ( !is.null(color) && is.null(shape)) {
+      tip_colors_df <- data.frame(
+        label = sapply(species_dict, function(entry) entry$tip_label),
+        species_colors = species_names,
+        color = color[match(sapply(species_dict, function(entry) entry$species), unique(species_names))]
+      )
+
+      x <- full_join(tree_df, tip_colors_df, by = 'label')
+      plot <- plot + geom_star(aes(x=x, subset = isTip, fill = species_colors, starshape = '15'), size = 3, show.legend = TRUE)
     }
-    ref_labs <- tree$tip.label[ref_idx]
-    ref_species <- data.frame(node = ref_idx, name = c(sub("_.*", "", ref_labs)), label = ref_labs)
-    species <- sub("_.*", "", tree$tip.label[-ref_idx])
+  
+    if ( is.null(color) && !is.null(shape)) {
+      tip_shapes_df <- data.frame(
+        label = sapply(species_dict, function(entry) entry$tip_label),
+        species_shapes = species_names,
+        shape = shape[match(sapply(species_dict, function(entry) entry$species), unique(species_names))]
+      )
+      
+      x <- full_join(tree_df, tip_shapes_df, by = 'label')
+      plot <- plot + geom_star(aes(x=x, subset = isTip, fill = species_colors, starshape = shape), size = 3, show.legend = TRUE)
+    }
   }
+
+    if ( bootstrap_circles ) {
+      bootstrap_legend = 'Legend'
+      
+      # Include bootstrap values as circles 
+      bs_values <- bootstrap_circles(tree)
+
+      # Represent bootstrap values with colored circles
+      if ( !is.null(bs_values) ) {
+        x <- full_join(x, bs_values, by = 'node')
+        bootstrap_colors <- c('(75,100]' = "black", '(50,75]' = "grey", '(0,50]' = "snow2")
+    
+        root <- rootnode(tree)
+        plot <- plot + geom_point2(aes(subset = !isTip & node != root, fill = category), shape = 21, size = 2) + theme_tree(legend.position = c(0.8, 0.2)) + 
+                       scale_fill_manual(values = c(color, bootstrap_colors), guide = bootstrap_legend, name = 'Bootstrap Support (BS)',
+                                         breaks = c('(75,100]', '(50,75]', '(0,50]'), labels = expression("BS >=75", "50 <= BS < 75", "BS < 50")) 
+      }
+    }
   
-  # Get index of identified species
-  species_idx <- grep(paste(species, collapse = "|"), tree$tip.label)
+    # Add clades and labels for specific leaves
+    if (!is.null(clades) && !is.null(labels)) {
+        plot <- plot + geom_cladelab(node = clades, label = labels, align = TRUE, fill = 'white',
+                                     offset.text = labeldist, barsize = 0.9, offset.bar = 0.5, fontsize = fontsize)
+    }
   
-  # Keep name for tip color and shape mapping per species
-  unique_species <- sort(unique(species))
-  
-  # Create associative dataframes of tip color and shape 
-  tip_colors_df <- data.frame(
-    label = tree$tip.label[species_idx],
-    species = species,
-    colour = color[match(species, unique_species)]
-  )
-  
-  tip_shapes_df <- data.frame(
-    label = tree$tip.label[species_idx],
-    species = species,
-    shape = shape[match(species, unique_species)]
-  )
-  
-  # Join tip colors and shapes in tree object based on tip label
-  x <- data.frame()
-  x <- full_join(tree, tip_colors_df, by = 'label')
-  x <- full_join(x, tip_shapes_df, by = 'label')
-  
-  # Include bootstrap values as circles 
-  bs_values <- bootstrap_circles(x)
-  x <- full_join(x, bs_values, by = 'node')
-  
-  bootstrap_colors <- c('(75,100]' = "black", '(50,75]' = "grey", '(0,50]' = "snow2")
-  
-  if (bootstrap_legend == TRUE) {
-    bootstrap_legend = 'legend'
-  } else {
-    bootstrap_legend = NULL
-  }
-  
-  root <- rootnode(tree)
-  
-  # Draw tree with bootstrap nodes, color and shape mappings, and highlighted nodes
-  p <- ggtree(x) + geom_star(aes(x, subset = isTip, starshape = shape, fill = species.x), size = 3, show.legend = FALSE) +
-    geom_point2(aes(subset = !isTip & node != root, fill = category), shape = 21, size = 2) + theme_tree(legend.position = c(0.8, 0.2)) +
-    scale_fill_manual(values = c(color, bootstrap_colors), guide = bootstrap_legend, name = 'Bootstrap Support (BS)',
-                      breaks = c('(75,100]', '(50,75]', '(0,50]'), labels = expression("BS >=75", "50 <= BS < 75", "BS < 50"))
-  
-  if (!is.null(reference1) || !is.null(reference2)) {
-    plot <- p + geom_text(aes(label = ifelse(node %in% ref_species$node, ref_species$name, "")), 
-                          position = position_nudge(x = 0.08), vjust = 0.5, hjust = 0.9, size = 3.5, family = "Arial", fontface = "bold")
-  } else {
-    return(p)
-  }
-  
-  if (!is.null(clades) && !is.null(labels)) {
-    plot <- plot + geom_cladelab(node = clades, label = labels, align = TRUE, fill = 'white',
-                                 offset.text = labeldist, barsize = 0.9, offset.bar = 0.5, fontsize = fontsize)
-  }
-  
-  return(plot)
-}
+    if (exists("plot")) {
+      return(plot)
+    }
+ }
+
+
+tree <- read_tree("Sandfly_1275_P450s_plus_Agambiae.nwk")
+cyp6acj <- extract_subtree(tree, "arabicus_TRINITY_DN1067_c1_g4_i1_p1_501", "schwetzi_TRINITY_DN7802_c0_g1_i5_p1_511", bl=TRUE)
+visualize_tree(cyp6acj)
