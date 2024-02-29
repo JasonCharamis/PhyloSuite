@@ -27,7 +27,7 @@ load_packages <- function( tools ) {
 
 # Load required packages or install them if necessary
 dependencies <- c("ape", "phytools", "treeio", "tidytree","TreeTools",
-                  "ggstar", "ggtree","dplyr" )
+                  "ggstar", "ggtree","dplyr","plotly" )
 
 for (d in dependencies ) {
   load_packages(d)
@@ -75,7 +75,6 @@ node_ids <- function(tree, ...) {
       )
       
       tree_plot <- tree_plot %<+% matching_dict
-      
       labeled_tree <- tree_plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = 3)
       return(labeled_tree)
   }
@@ -99,31 +98,37 @@ group_descendants <- function(tree, node1, node2 = "", node3 = "", node4 = "") {
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
 extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
   if (inherits(tree, "treedata")) {
-    
-    t <- Preorder(tree@phylo)
-    #t <- tree@phylo
-    
+      phylo_data <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
+  }
+
+    phylo_data <- as.treedata(left_join(as_tibble(tree@phylo), as_tibble(tree@data), by = 'node') %>% 
+                                  mutate(label = ifelse(is.na(label), support, label)) %>% 
+                                  select(-support)
+      )
+    t <- Preorder(phylo_data@phylo)
     
     if (!(branch_length == TRUE | branch_length == T)) {
       print("Option branch length is deactivated. As a result, the subtree will be extracted as a cladogram with equal branch lengths.")
       t$edge.length <- NULL
-      cols <- c("node", "parent", "label")
-      f_cols <- c("parent", "node", "label", "support")
-    }
+    } 
     
-    else {
-      cols <- c("node", "parent", "edgeLength", "label")
-      f_cols <- c("parent", "node", "edgeLength", "label","support")
-    }
-  
     # Extract subtree based on anchor tips
-    subtree <- ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1, tip2)))
+    tip1m <- t$tip.label[grepl(tip1, t$tip.label)]
+    tip2m <- t$tip.label[grepl(tip2, t$tip.label)]
 
-    return (subtree)
+    if (any(sapply(list(tip1m, tip2m), function(x) is.null(x)))) {
+      stop("Provided tip labels are NULL or were not found among tree tip labels.")
+    } else if (any(sapply(list(tip1m, tip2m), function(x) length(x) > 1 ))) {
+      stop("Provided tip names are not unique.")
+    }
     
+    subtree <- ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1m, tip2m)))
+    return (treeio::as.treedata(subtree))
+      
   } else {
-      warning("Input tree is not of class treedata. Please use the read_tree function to read input file.")
-      return(NULL)
+      stop("Input tree is not of class treedata or phylo. Please use the read_tree function to read input file.")
   }
 }
 
@@ -222,7 +227,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = TRUE, pattern
                            bootstrap_circles = TRUE, bootstrap_numbers = FALSE, bootstrap_legend = TRUE,
                            color = NULL, shape = NULL,
                            clades = NULL, labels = NULL, mappings_legend = TRUE, 
-                           save = TRUE, output = NULL, ...) {
+                           save = TRUE, output = NULL, interactive = FALSE, ...) {
   
   # Open phylogenetic tree file and/or object
   if (typeof(tree) == "character") {
@@ -237,6 +242,8 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = TRUE, pattern
         tree_obj <- tree
   } else if (is(tree,"phylo")) {
         tree_obj <- treeio::as.treedata(tree)
+        print (as_tibble(tree_obj), n = 1000)
+        
   } else {
         stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
@@ -245,6 +252,9 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = TRUE, pattern
 
   # Manipulate bootstrap values
   if (bootstrap_circles == TRUE && bootstrap_numbers != TRUE ) {
+    
+    print (as_tibble(tree_obj), n = 1000)
+    
     if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
         bootstrap_legend <- 'Legend'
         
@@ -405,6 +415,11 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = TRUE, pattern
          } else {
               print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
          }
-     return(plot)
+     
+     if (interactive == FALSE) {
+        return(plot)
+     } else {
+        return (plotly::ggplotly(plot))
+     }
     }
 }
