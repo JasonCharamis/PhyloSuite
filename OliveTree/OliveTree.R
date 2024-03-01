@@ -416,8 +416,6 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
             plot <- plot %<+% tip_colors_df 
             plot <- plot %<+% tip_shapes_df  
             
-            print(tip_shapes_df$s_shape)
-             
             plot <- plot + geom_star(mapping = aes( subset = isTip,
                                                     fill = ifelse(!is.na(species_colors), s_color, NA),
                                                     starshape = ifelse(!is.na(species_shapes), s_shape, NA)),
