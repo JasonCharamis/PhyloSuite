@@ -46,7 +46,7 @@ load_packages(dependencies)
 
 #==================================== TREE MANIPULATION FUNCTIONS ====================================#
 
-#' Read a phylogenetic tree.
+#' read_tree: Read a phylogenetic tree.
 #' This function reads a phylogenetic tree from a file.
 #'
 #' @param input_file Path to the file containing the phylogenetic tree.
@@ -66,14 +66,13 @@ read_tree <- function(input_file) {
   return(t)
 }
 
-#' Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.
-#'
+#' node_ids: Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.
 #' This function generates a plot of a phylogenetic tree with node IDs displayed. Additionally, it offers the option
 #' to highlight specific tip labels that match a user-provided pattern.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
 #' @param node_id_color Color of the printed node ids. Default is "darkred".
-#' @param ... Additional arguments to specify tip labels for highlighting.
+#' @param ... Pattern(s) for printing tip labels that match them.
 #' 
 #' @return A ggplot object representing the phylogenetic tree with node IDs and optional highlighted tip labels.
 #' 
@@ -89,32 +88,49 @@ read_tree <- function(input_file) {
 #' @export
 
 node_ids <- function(tree, node_id_color = "darkred", ...) {
+  
+  # Open phylogenetic tree file and/or object
+  if (typeof(tree) == "character") {
+    if (file.exists(tree)) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+        tree_obj <- read_tree(tree)
+      } else {
+          stop ("Provided file is not a newick or nexus file.")
+      }
+    } 
+  } else if (is(tree,"treedata")) {
+      tree_obj <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
+  } else {
+      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
+  }
+  
   # Create the base tree plot with node labels
-  tree_plot <- ggtree(tree, layout = "rectangular") + 
-               geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
+  plot <- ggtree(tree_obj, layout = "rectangular") + 
+          geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
   
   references <- list(...)
   
   if (length(references) == 0) {
     print("Only node IDs will be printed.")
-    return(tree_plot)
+    return(plot)
   } else {
       reference <- as.character(unlist(references))
-      matching_labels <- tree@phylo$tip.label[grepl(reference, tree@phylo$tip.label)]
+      matching_labels <- tree_obj@phylo$tip.label[grepl(reference, tree_obj@phylo$tip.label)]
 
       matching_dict <- data.frame(
         label = matching_labels,
         matching_flag = TRUE
       )
       
-      tree_plot <- tree_plot %<+% matching_dict
-      labeled_tree <- tree_plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size)
-      return(labeled_tree)
+      plot <- plot %<+% matching_dict
+      plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size)
+      return(plot)
   }
 }
 
-#' Collapse nodes in a phylogenetic tree based on bootstrap support.
-#'
+#' bootstrap_collapse: Collapse nodes in a phylogenetic tree based on bootstrap support.
 #' This function collapses nodes in a phylogenetic tree where the bootstrap support is below a specified cutoff.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
@@ -134,11 +150,28 @@ node_ids <- function(tree, node_id_color = "darkred", ...) {
 #' @export
 
 bootstrap_collapse <- function(tree, cutoff = 0.5) { 
-  return(as.polytomy(tree, feature = 'node.label', fun = function(x) as.numeric(x) < cutoff))
+  
+  # Open phylogenetic tree file and/or object
+  if (typeof(tree) == "character") {
+    if (file.exists(tree)) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+        tree_obj <- read_tree(tree)
+      } else {
+          stop ("Provided file is not a newick or nexus file.")
+      }
+    } 
+  } else if (is(tree,"treedata")) {
+      tree_obj <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
+  } else {
+      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
+  }
+  
+  return(as.polytomy(tree_obj, feature = 'support', fun = function(x) as.numeric(x) < cutoff))
 }
 
-#' Flip a phylogenetic tree based on descendant nodes.
-#' This function flips a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
+#' flip_node: Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
 #' @param node1 The first node for flipping.
@@ -161,10 +194,28 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 #' @export
 
 flip_node <- function(tree, node1, node2) {
-  return(as.phylo(flip(ggtree(tree), node1, node2)))
+  
+  # Open phylogenetic tree file and/or object
+  if (typeof(tree) == "character") {
+    if (file.exists(tree)) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+        tree_obj <- read_tree(tree)
+      } else {
+        stop ("Provided file is not a newick or nexus file.")
+      }
+    } 
+  } else if (is(tree,"treedata")) {
+      tree_obj <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
+  } else {
+      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
+  }
+  
+  return(as.phylo(flip(ggtree(tree_obj), node1, node2)))
 }
 
-#' Group all descendant branches of specified node(s) in a phylogenetic tree.
+#' group_descendants: Group all descendant branches of specified node(s) in a phylogenetic tree.
 #' This function groups all descendant branches of the specified node(s) in a phylogenetic tree.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
@@ -185,16 +236,32 @@ flip_node <- function(tree, node1, node2) {
 #' }
 #'
 #' @export
-#' @export
-#' @export
-#' @export
 
 # Function to group all descendant branches of node(s)
-group_descendants <- function(tree, node1, node2 = "", node3 = "", node4 = "") {
-  return(groupClade(tree, .node = c(node1, node2, node3, node4)))
+group_descendants <- function(tree, ...) {
+  
+  # Open phylogenetic tree file and/or object
+  if (typeof(tree) == "character") {
+    if (file.exists(tree)) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+        tree_obj <- read_tree(tree)
+      } else {
+        stop ("Provided file is not a newick or nexus file.")
+      }
+    } 
+  } else if (is(tree,"treedata")) {
+      tree_obj <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
+  } else {
+      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
+  }
+  
+  nodes <- list(...)
+  return(tidytree::groupClade(tree_obj, .node = nodes))
 }
 
-#' Extract Subtree
+#' extract_subtree: Extract Subtree
 #' Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor nodes while preserving branch lengths and bootstrap values.
 #'
 #' @param tree A phylogenetic tree object of class 'phylo' or 'treedata'.
@@ -228,12 +295,22 @@ group_descendants <- function(tree, node1, node2 = "", node3 = "", node4 = "") {
 
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
 extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
-  if (is(tree,"phylo")) {
-    tree_obj <- treeio::as.treedata(tree)
+
+  # Open phylogenetic tree file and/or object
+  if (typeof(tree) == "character") {
+    if (file.exists(tree)) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+        tree_obj <- read_tree(tree)
+      } else {
+          stop ("Provided file is not a newick or nexus file.")
+      }
+    } 
   } else if (is(tree,"treedata")) {
       tree_obj <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
   } else {
-    stop("Input tree is not of class treedata or phylo. Please use the read_tree function to read input file.")
+      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
   
   # Append bootstrap values in the label section, in the nodes which are NOT tips
@@ -281,6 +358,7 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
       node = subtree_f@extraInfo$node,
       support = as.numeric(subtree_f@extraInfo$bs_support)
   ) 
+  
   return ( subtree_f )
 } 
 
@@ -318,6 +396,24 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
 
 # Function to highlight nodes on a tree
 highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circular", name = NULL, ...) {
+  
+  # Open phylogenetic tree file and/or object
+  if (typeof(tree) == "character") {
+    if (file.exists(tree)) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+        tree_obj <- read_tree(tree)
+      } else {
+          stop ("Provided file is not a newick or nexus file.")
+      }
+    } 
+  } else if (is(tree,"treedata")) {
+      tree_obj <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
+  } else {
+      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
+  }
+  
   # Check if highlight_nodes is a list or a vector
   if (is.list(highlight_nodes)) {
     # It's a list, create a data frame with random colors
@@ -337,80 +433,78 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
       )
     }
   } else if (is.vector(highlight_nodes)) {
-    # It's a vector, create a data frame with provided colors or generate random colors
-    if (is.null(colors)) {
-      # Generate random colors if colors are not provided
-      highlight <- data.frame(
-        Groups = NULL,  # You can specify the groups if needed
-        Label = highlight_nodes,
-        Color = sample(colors(), length(highlight_nodes))
-      )
-    } else {
-      # Use provided colors
-      highlight <- data.frame(
-        Groups = NULL,  # You can specify the groups if needed
-        Label = highlight_nodes,
-        Color = colors
-      )
-    }
+      # It's a vector, create a data frame with provided colors or generate random colors
+      if (is.null(colors)) {
+        # Generate random colors if colors are not provided
+        highlight <- data.frame(
+          Groups = NULL,  # You can specify the groups if needed
+          Label = highlight_nodes,
+          Color = sample(colors(), length(highlight_nodes))
+        )
+      } else {
+        # Use provided colors
+        highlight <- data.frame(
+          Groups = NULL,  # You can specify the groups if needed
+          Label = highlight_nodes,
+          Color = colors
+        )
+      }
   } else {
-    stop("highlight_nodes must be either a list or a vector.")
+      stop("highlight_nodes must be either a list or a vector.")
   }
   
   # Create the ggtree plot
   if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-    x <- read_tree(tree)
-    tree <- ggtree(x, layout = layout) + 
-      geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
-      scale_starshape_identity() + scale_fill_identity()
+      tree_obj <- read_tree(tree)
+      
+      plot <- ggtree(tree_obj, layout = layout) + 
+              geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
+              scale_starshape_identity() + scale_fill_identity()
   } else {
-    tree <- ggtree(tree, layout = layout) + 
-      geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
-      scale_starshape_identity() + scale_fill_identity()
+      plot <- ggtree(tree_obj, layout = layout) + 
+              geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
+              scale_starshape_identity() + scale_fill_identity()
   }
   
   # Highlight the nodes
   if (!is.null(highlight$Groups)) {
-    treef <- tree + geom_hilight(
-      data = highlight,
-      aes(node = Label, fill = Groups),
-      alpha = 0.3, extend = 0.10, linetype = 1, linewidth = 0.9, 
-      colour = "black", show.legend = TRUE
-    ) + scale_fill_manual(values = highlight$Color)
+    plot <- plot + geom_hilight(
+                          data = highlight,
+                          aes(node = Label, fill = Groups),
+                          alpha = 0.3, extend = 0.10, linetype = 1, linewidth = 0.9, 
+                          colour = "black", show.legend = TRUE) + scale_fill_manual(values = highlight$Color)
   } else {
-    treef <- tree + geom_hilight(
-      data = highlight,
-      aes(node = Label, fill = highlight$Color),
-      alpha = 0.3, extend = 0.10, linetype = 1, linewidth = 0.9, 
-      colour = "black", show.legend = TRUE
-    ) 
+      plot <- plot + geom_hilight(
+                        data = highlight,
+                        aes(node = Label, fill = highlight$Color),
+                        alpha = 0.3, extend = 0.10, linetype = 1, linewidth = 0.9, 
+                        colour = "black", show.legend = TRUE) 
   }
   
   # Save the highlighted plot
-  if (exists("treef")) {
+  if (exists("plot")) {
     if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-      ggsave(plot = treef, sprintf("%s_highlighted.svg", sub(".nwk|.tre", "", tree)), dpi = 600)
+      ggsave(plot = plot, sprintf("%s_highlighted.svg", sub(".nwk|.tre", "", tree)), dpi = 600)
       sprintf("Tree plotted and saved as %s_highlighted.svg", sub(".nwk|.tre", "", tree))
     } else {
-      ggsave(plot = treef, "tree_plot_highlighted.svg", dpi = 600)
-      print("Tree plotted and saved as tree_plot_highlighted.svg!")
+        ggsave(plot = plot, "tree_plot_highlighted.svg", dpi = 600)
+        print("Tree plotted and saved as tree_plot_highlighted.svg!")
     }
-    return(treef)
+    
+    return(plot)
   }
 }
-
-
 
 #' Function to visualize a tree with a wide variety of options and customizable features
 #' Reference taxons should be defined as reference = 'taxon_ID'.
 #'
 #' @param tree Phylogenetic tree in Newick format, treedata, or phylo class object.
-#' @param form Layout of the tree (e.g., "rectangular").
+#' @param form Layout of the tree based on ggtree options (Default: "rectangular").
 #' @param tiplabels Logical. Print tip labels on the tree.
 #' @param pattern_id Pattern to match tip labels for printing.
-#' @param bootstrap_numbers Logical. Display bootstrap values on branches.
+#' @param bootstrap_numbers Logical. Display bootstrap values on branches. Default: TRUE
 #' @param bootstrap_number_nudge_y Numeric. Controls the relative height of the bootstrap number on top of the branch.
-#' @param bootstrap_circles Logical. Display bootstrap values as circles on branches.
+#' @param bootstrap_circles Logical. Display bootstrap values as circles on parent nodes of branches.
 #' @param bootstrap_legend Logical. Display legend for bootstrap circles.
 #' @param color Vector specifying tip color mappings.
 #' @param shape Vector specifying tip shape mappings.
@@ -422,7 +516,7 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' @param save Logical. Save the plot.
 #' @param output Character. Output file name if saving the plot.
 #' @param interactive Logical. Generate an interactive plot using plotly.
-#' @param ... Additional parameters for customizing the plot.
+#' @param ... Add pattern(s) for reference taxon IDs. Works only if color and/or shape mappings are provided
 #'
 #' @return A ggplot or ggplotly object representing the visualized tree.
 #'
@@ -471,8 +565,6 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
         tree_obj <- tree
   } else if (is(tree,"phylo")) {
         tree_obj <- treeio::as.treedata(tree)
-        print (as_tibble(tree_obj), n = 1000)
-        
   } else {
         stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
@@ -482,9 +574,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
                                                        support >= 50 & support < 75 ~ "grey",
                                                        support >= 75 ~ "black",
                                                        TRUE ~ "NA"  # Default case if none of the conditions are met
-                                                       )
-                                  )
-                           )
+                                                       )))
   
   plot <- ggtree(tree_obj, layout = form)
 
@@ -516,7 +606,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
   }
 
    # Visualize phylogenetic tree with an option to select the printed tips, based on pattern
-   if (is.null(color) && is.null(shape) && is.null(clades) && is.null(labels) ) {
+   if (is.null(color) && is.null(shape) ) {
      if (length(list(...)) > 0) { 
        stop("The 'reference' option can be used only if tip mappings are provided.")
      }
@@ -694,8 +784,8 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
              }
            }
         } else {
-                ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
-                print("Tree plotted and saved as tree_plot_visualized.svg!")
+            ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
+            print("Tree plotted and saved as tree_plot_visualized.svg!")
         }
       } else {
           ggsave(plot = plot, output, dpi = 600)
@@ -712,4 +802,3 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
     }
   }
 }
-
