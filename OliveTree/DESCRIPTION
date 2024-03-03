@@ -1,0 +1,25 @@
+Package: OliveTree
+Type: Package
+Title: Package for Advanced Tree Visualization in R
+Version: 0.1.0
+Date: 2024-03-03
+Author: Jason Charamis
+Maintainer: Your Email <jason.charamis@gmail.com>
+Description: Library of functions for advanced tree visualization in R by extending based on ggtree, ape, phytools and tidytree.
+License: Artistic-2.0
+Encoding: UTF-8
+Imports:
+    treeio,
+    ape,
+    phytools,
+    tidytree,
+    TreeTools,
+    ggstar,
+    ggtree,
+    dplyr,
+    plotly,
+    BiocManager
+Suggests:
+    ggsave
+RoxygenNote: 7.3.1
+Roxygen: list(markdown = TRUE)

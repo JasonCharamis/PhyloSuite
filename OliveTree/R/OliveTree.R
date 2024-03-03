@@ -609,5 +609,3 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
     }
   }
 }
-
-roxygen2::roxygenise()
