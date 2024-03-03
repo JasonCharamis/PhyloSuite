@@ -2,7 +2,9 @@
 % Please edit documentation in R/OliveTree.R
 \name{node_ids}
 \alias{node_ids}
-\title{Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.}
+\title{node_ids: Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.
+This function generates a plot of a phylogenetic tree with node IDs displayed. Additionally, it offers the option
+to highlight specific tip labels that match a user-provided pattern.}
 \usage{
 node_ids(tree, node_id_color = "darkred", ...)
 }
@@ -11,12 +13,13 @@ node_ids(tree, node_id_color = "darkred", ...)
 
 \item{node_id_color}{Color of the printed node ids. Default is "darkred".}
 
-\item{...}{Additional arguments to specify tip labels for highlighting.}
+\item{...}{Pattern(s) for printing tip labels that match them.}
 }
 \value{
 A ggplot object representing the phylogenetic tree with node IDs and optional highlighted tip labels.
 }
 \description{
+node_ids: Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.
 This function generates a plot of a phylogenetic tree with node IDs displayed. Additionally, it offers the option
 to highlight specific tip labels that match a user-provided pattern.
 }

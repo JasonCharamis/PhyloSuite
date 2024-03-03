@@ -2,7 +2,8 @@
 % Please edit documentation in R/OliveTree.R
 \name{bootstrap_collapse}
 \alias{bootstrap_collapse}
-\title{Collapse nodes in a phylogenetic tree based on bootstrap support.}
+\title{bootstrap_collapse: Collapse nodes in a phylogenetic tree based on bootstrap support.
+This function collapses nodes in a phylogenetic tree where the bootstrap support is below a specified cutoff.}
 \usage{
 bootstrap_collapse(tree, cutoff = 0.5)
 }
@@ -15,6 +16,7 @@ bootstrap_collapse(tree, cutoff = 0.5)
 A 'phylo' object with collapsed branches with bootstrap less than the provided cutoff.
 }
 \description{
+bootstrap_collapse: Collapse nodes in a phylogenetic tree based on bootstrap support.
 This function collapses nodes in a phylogenetic tree where the bootstrap support is below a specified cutoff.
 }
 \examples{

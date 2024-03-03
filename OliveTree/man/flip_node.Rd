@@ -2,8 +2,7 @@
 % Please edit documentation in R/OliveTree.R
 \name{flip_node}
 \alias{flip_node}
-\title{Flip a phylogenetic tree based on descendant nodes.
-This function flips a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.}
+\title{flip_node: Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.}
 \usage{
 flip_node(tree, node1, node2)
 }
@@ -18,8 +17,7 @@ flip_node(tree, node1, node2)
 A 'phylo' object with flipped nodes.
 }
 \description{
-Flip a phylogenetic tree based on descendant nodes.
-This function flips a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
+flip_node: Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
 }
 \examples{
 \dontrun{

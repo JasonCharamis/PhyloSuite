@@ -30,17 +30,17 @@ visualize_tree(
 \arguments{
 \item{tree}{Phylogenetic tree in Newick format, treedata, or phylo class object.}
 
-\item{form}{Layout of the tree (e.g., "rectangular").}
+\item{form}{Layout of the tree based on ggtree options (Default: "rectangular").}
 
 \item{tiplabels}{Logical. Print tip labels on the tree.}
 
 \item{pattern_id}{Pattern to match tip labels for printing.}
 
-\item{bootstrap_numbers}{Logical. Display bootstrap values on branches.}
+\item{bootstrap_numbers}{Logical. Display bootstrap values on branches. Default: TRUE}
 
 \item{bootstrap_number_nudge_y}{Numeric. Controls the relative height of the bootstrap number on top of the branch.}
 
-\item{bootstrap_circles}{Logical. Display bootstrap values as circles on branches.}
+\item{bootstrap_circles}{Logical. Display bootstrap values as circles on parent nodes of branches.}
 
 \item{bootstrap_legend}{Logical. Display legend for bootstrap circles.}
 
@@ -64,7 +64,7 @@ visualize_tree(
 
 \item{interactive}{Logical. Generate an interactive plot using plotly.}
 
-\item{...}{Additional parameters for customizing the plot.}
+\item{...}{Add pattern(s) for reference taxon IDs. Works only if color and/or shape mappings are provided}
 }
 \value{
 A ggplot or ggplotly object representing the visualized tree.

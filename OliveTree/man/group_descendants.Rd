@@ -2,10 +2,10 @@
 % Please edit documentation in R/OliveTree.R
 \name{group_descendants}
 \alias{group_descendants}
-\title{Group all descendant branches of specified node(s) in a phylogenetic tree.
+\title{group_descendants: Group all descendant branches of specified node(s) in a phylogenetic tree.
 This function groups all descendant branches of the specified node(s) in a phylogenetic tree.}
 \usage{
-group_descendants(tree, node1, node2 = "", node3 = "", node4 = "")
+group_descendants(tree, ...)
 }
 \arguments{
 \item{tree}{An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.}
@@ -22,7 +22,7 @@ group_descendants(tree, node1, node2 = "", node3 = "", node4 = "")
 A 'phylo' object with grouped descendants.
 }
 \description{
-Group all descendant branches of specified node(s) in a phylogenetic tree.
+group_descendants: Group all descendant branches of specified node(s) in a phylogenetic tree.
 This function groups all descendant branches of the specified node(s) in a phylogenetic tree.
 }
 \examples{
