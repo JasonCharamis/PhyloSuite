@@ -39,8 +39,8 @@ load_packages <- function( tools ) {
 }
 
 # Load required packages or install them if necessary
-dependencies <- c("roxygen2","ape", "phytools", "treeio", "tidytree","TreeTools",
-                  "ggstar", "ggtree","dplyr", "plotly")
+dependencies <- c("roxygen2","ape", "phytools", "treeio", "tidytree",
+                  "TreeTools", "ggstar", "ggtree","dplyr", "plotly")
 
 load_packages(dependencies)
 
@@ -171,7 +171,7 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
   return(as.polytomy(tree_obj, feature = 'support', fun = function(x) as.numeric(x) < cutoff))
 }
 
-#' flip_node: Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
+#' flip_nodes: Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
 #' @param node1 The first node for flipping.
@@ -193,7 +193,7 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 #'
 #' @export
 
-flip_node <- function(tree, node1, node2) {
+flip_nodes <- function(tree, node1, node2) {
   
   # Open phylogenetic tree file and/or object
   if (typeof(tree) == "character") {
@@ -212,7 +212,7 @@ flip_node <- function(tree, node1, node2) {
       stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
   
-  return(as.phylo(flip(ggtree(tree_obj), node1, node2)))
+  return(as.phylo(ggtree::flip(ggtree(tree_obj), node1, node2)))
 }
 
 #' group_descendants: Group all descendant branches of specified node(s) in a phylogenetic tree.
