@@ -199,6 +199,39 @@ group_descendants <- function(tree, node1, node2 = "", node3 = "", node4 = "") {
   return(groupClade(tree, .node = c(node1, node2, node3, node4)))
 }
 
+#' Extract Subtree
+#'
+#' Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor nodes while preserving branch lengths and bootstrap values.
+#'
+#' @param tree A phylogenetic tree object of class 'phylo' or 'treedata'.
+#' @param tip1 The label or pattern of the first tip node.
+#' @param tip2 The label or pattern of the second tip node.
+#' @param branch_length Logical. If TRUE, preserve branch lengths in the extracted subtree; if FALSE, create a cladogram with equal branch lengths.
+#'
+#' @return A treedata object representing the extracted subtree with preserved branch lengths and bootstrap values.
+#'
+#' @examples
+#' # Extract a subtree preserving branch lengths and bootstrap values
+#' tree <- read.tree("path/to/your/treefile.newick")
+#' subtree <- extract_subtree(tree, "species_A", "species_B", branch_length = TRUE)
+#' visualize_tree(subtree)
+#'
+#' # Extract a cladogram with equal branch lengths
+#' tree <- read.tree("path/to/your/treefile.newick")
+#' cladogram <- extract_subtree(tree, "species_A", "species_B", branch_length = FALSE)
+#' visualize_tree(cladogram)
+#'
+#' @seealso
+#' \code{\link{visualize_tree}} for visualizing phylogenetic trees.
+#' \code{\link{findMRCA}} for finding the Most Recent Common Ancestor (MRCA) of multiple nodes.
+#'
+#' @importFrom dplyr left_join select mutate as_tibble
+#' @importFrom ape extract.clade
+#' @importFrom phytools findMRCA
+#' @importFrom treeio as.treedata read.tree
+#'
+#' @export
+
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
 extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
   if (is(tree,"phylo")) {
@@ -259,6 +292,36 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
 
 
 #==================================== TREE VISUALIZATION FUNCTIONS ====================================#
+
+#' Highlight Tree Nodes
+#'
+#' Function to highlight nodes on a phylogenetic tree.
+#'
+#' @param tree A phylogenetic tree object of class 'phylo' or a file path to a tree file (e.g., in Newick format).
+#' @param highlight_nodes A list or vector of node labels or patterns to highlight on the tree.
+#' @param colors A vector of colors corresponding to the highlight nodes. If not provided, random colors will be assigned.
+#' @param layout A character string specifying the layout of the tree. Options include "rectangular", "circular", etc.
+#' @param name A character string specifying the name for the highlighted plot.
+#'
+#' @return A ggtree object with highlighted nodes.
+#'
+#' @examples
+#' # Highlight specific nodes with random colors
+#' tree <- read.tree("path/to/your/treefile.newick")
+#' highlight_tree(tree, c("species_A", "species_B"))
+#'
+#' # Highlight specific nodes with specified colors
+#' tree <- read.tree("path/to/your/treefile.newick")
+#' highlight_tree(tree, c("species_A", "species_B"), colors = c("red", "blue"))
+#'
+#' @seealso
+#' \code{\link{visualize_tree}} for visualizing phylogenetic trees.
+#'
+#' @importFrom ggtree ggtree geom_star scale_starshape_identity geom_hilight scale_fill_manual
+#' @importFrom treeio read_tree
+#' @import ggplot2
+#'
+#' @export
 
 # Function to highlight nodes on a tree
 highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circular", name = NULL, ...) {
@@ -343,8 +406,58 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
   }
 }
 
-# Node coloring is deprecated from the visualize_tree function and will be implemented only in the highlight_tree argument.
-# Now, I have to modify the code, to accept visualize tree objects in the highlight_tree function
+
+
+#' Function to visualize a tree with a wide variety of options and customizable features
+#' Reference taxons should be defined as reference = 'taxon_ID'.
+#'
+#' @param tree Phylogenetic tree in Newick format, treedata, or phylo class object.
+#' @param form Layout of the tree (e.g., "rectangular").
+#' @param tiplabels Logical. Print tip labels on the tree.
+#' @param pattern_id Pattern to match tip labels for printing.
+#' @param bootstrap_numbers Logical. Display bootstrap values on branches.
+#' @param bootstrap_number_nudge_y Numeric. Controls the relative height of the bootstrap number on top of the branch.
+#' @param bootstrap_circles Logical. Display bootstrap values as circles on branches.
+#' @param bootstrap_legend Logical. Display legend for bootstrap circles.
+#' @param color Vector specifying tip color mappings.
+#' @param shape Vector specifying tip shape mappings.
+#' @param mappings_legend Logical. Display legend for color and shape mappings.
+#' @param tip_label_size Numeric. Size of tip labels.
+#' @param tip_shape_size Numeric. Size of tip shapes.
+#' @param clades Vector of node IDs to label.
+#' @param labels Vector of labels for the specified clades.
+#' @param save Logical. Save the plot.
+#' @param output Character. Output file name if saving the plot.
+#' @param interactive Logical. Generate an interactive plot using plotly.
+#' @param ... Additional parameters for customizing the plot.
+#'
+#' @return A ggplot or ggplotly object representing the visualized tree.
+#'
+#' @examples
+#' \dontrun{
+#' # Load required libraries
+#' library(ggplot2)
+#' library(ggtree)
+#'
+#' # Example: Visualize a tree with bootstrap values as circles and custom colors
+#' visualize_tree(tree, form = "rectangular", bootstrap_circles = TRUE,
+#'                color = c(species1 = "red", species2 = "blue"))
+#' }
+#'
+#' @seealso \code{\link[ggtree]{ggtree}}, \code{\link[ggtree]{geom_tiplab}},
+#' \code{\link[ggtree]{geom_nodelab}}, \code{\link[ggtree]{geom_cladelab}},
+#' \code{\link[ggtree]{geom_star}}, \code{\link[ggtree]{theme_tree}}, \code{\link[ggsave]{ggsave}},
+#' \code{\link[plotly]{ggplotly}}
+#' 
+#' @importFrom ggplot2 aes case_when theme
+#' @importFrom ggtree ggtree geom_tiplab geom_nodelab geom_cladelab geom_star theme_tree
+#' @importFrom ggsave ggsave
+#' @importFrom plotly ggplotly
+#'
+#' @export
+
+
+
 # Function to visualize a tree with a wide variety of options and customizable features
 # Reference taxons should be defined as reference = 'taxon_ID'.
 
@@ -609,3 +722,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
     }
   }
 }
+
+rm(list = c("bootstrap_collapse", "flip_node", "group_descendants", "load_packages", "node_ids", "read_tree"))
+
+roxygen2::roxygenise()
