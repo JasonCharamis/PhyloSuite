@@ -295,8 +295,8 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
         plot <- plot + theme_tree(legend.position = c(0.2, 0.2))
       }
     }
-  } else if (bootstrap_circles == TRUE && bootstrap_numbers == TRUE) {
-        stop ("bootstrap_circles = TRUE (default) and bootstrap_numbers = TRUE. Please select either bootstrap circles or bootstrap numbers option.")
+  } else if ( bootstrap_numbers == TRUE && bootstrap_circles == TRUE ) {
+        stop ("bootstrap_numbers = TRUE (default) and bootstrap_circles = TRUE. Please select either bootstrap circles or bootstrap numbers option.")
   } else {
         print ("Both bootstrap_circles and bootstrap_numbers options are FALSE. Bootstrap values will not be printed.")
   }
