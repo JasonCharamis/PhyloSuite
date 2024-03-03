@@ -2,7 +2,8 @@
 % Please edit documentation in R/OliveTree.R
 \name{read_tree}
 \alias{read_tree}
-\title{Read a phylogenetic tree.}
+\title{Read a phylogenetic tree.
+This function reads a phylogenetic tree from a file.}
 \usage{
 read_tree(input_file)
 }
@@ -13,6 +14,7 @@ read_tree(input_file)
 An object representing the phylogenetic tree.
 }
 \description{
+Read a phylogenetic tree.
 This function reads a phylogenetic tree from a file.
 }
 \examples{

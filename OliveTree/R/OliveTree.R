@@ -1,5 +1,4 @@
 #' Library of functions for advanced tree manipulation and visualization using ggtree, ape, phytools, and other related tools.
-#' 
 #' @import treeio
 #' @import ape
 #' @import phytools
@@ -33,7 +32,7 @@ load_packages <- function( tools ) {
          if ( pkg %in% BiocManager::available(pkg) ) {
             BiocManager::install(pkg, dependencies = TRUE, update = TRUE)
          } else {
-            install.packages(pkg, dependencies = TRUE, ask = FALSE, reinstall = TRUE)
+            install.packages(pkg, dependencies = TRUE, ask = FALSE)
       }
     }
   }
@@ -48,7 +47,6 @@ load_packages(dependencies)
 #==================================== TREE MANIPULATION FUNCTIONS ====================================#
 
 #' Read a phylogenetic tree.
-#'
 #' This function reads a phylogenetic tree from a file.
 #'
 #' @param input_file Path to the file containing the phylogenetic tree.
@@ -67,7 +65,6 @@ read_tree <- function(input_file) {
   t <- treeio::read.newick(input_file, node.label = "support")
   return(t)
 }
-
 
 #' Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.
 #'
@@ -141,7 +138,6 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 }
 
 #' Flip a phylogenetic tree based on descendant nodes.
-#'
 #' This function flips a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
@@ -169,7 +165,6 @@ flip_node <- function(tree, node1, node2) {
 }
 
 #' Group all descendant branches of specified node(s) in a phylogenetic tree.
-#'
 #' This function groups all descendant branches of the specified node(s) in a phylogenetic tree.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
@@ -200,7 +195,6 @@ group_descendants <- function(tree, node1, node2 = "", node3 = "", node4 = "") {
 }
 
 #' Extract Subtree
-#'
 #' Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor nodes while preserving branch lengths and bootstrap values.
 #'
 #' @param tree A phylogenetic tree object of class 'phylo' or 'treedata'.
@@ -228,7 +222,7 @@ group_descendants <- function(tree, node1, node2 = "", node3 = "", node4 = "") {
 #' @importFrom dplyr left_join select mutate as_tibble
 #' @importFrom ape extract.clade
 #' @importFrom phytools findMRCA
-#' @importFrom treeio as.treedata read.tree
+#' @importFrom treeio as.treedata read.newick
 #'
 #' @export
 
@@ -290,11 +284,9 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
   return ( subtree_f )
 } 
 
-
 #==================================== TREE VISUALIZATION FUNCTIONS ====================================#
 
 #' Highlight Tree Nodes
-#'
 #' Function to highlight nodes on a phylogenetic tree.
 #'
 #' @param tree A phylogenetic tree object of class 'phylo' or a file path to a tree file (e.g., in Newick format).
@@ -317,9 +309,10 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
 #' @seealso
 #' \code{\link{visualize_tree}} for visualizing phylogenetic trees.
 #'
-#' @importFrom ggtree ggtree geom_star scale_starshape_identity geom_hilight scale_fill_manual
-#' @importFrom treeio read_tree
-#' @import ggplot2
+#' @importFrom ggtree ggtree geom_hilight  
+#' @importFrom ggstar geom_star
+#' @importFrom ggplot2 scale_fill_manual ggsave
+#' @importFrom treeio read.newick
 #'
 #' @export
 
@@ -446,21 +439,18 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #'
 #' @seealso \code{\link[ggtree]{ggtree}}, \code{\link[ggtree]{geom_tiplab}},
 #' \code{\link[ggtree]{geom_nodelab}}, \code{\link[ggtree]{geom_cladelab}},
-#' \code{\link[ggtree]{geom_star}}, \code{\link[ggtree]{theme_tree}}, \code{\link[ggsave]{ggsave}},
+#' \code{\link[ggstar]{geom_star}}, \code{\link[ggplot2]{theme_tree}}, \code{\link[ggplot2]{ggsave}},
 #' \code{\link[plotly]{ggplotly}}
 #' 
-#' @importFrom ggplot2 aes case_when theme
-#' @importFrom ggtree ggtree geom_tiplab geom_nodelab geom_cladelab geom_star theme_tree
-#' @importFrom ggsave ggsave
+#' @importFrom ggplot2 aes theme ggsave
+#' @importFrom ggtree ggtree geom_tiplab geom_nodelab geom_cladelab theme_tree 
+#' @importFrom ggstar geom_star
 #' @importFrom plotly ggplotly
 #'
-#' @export
-
-
+#' @export 
 
 # Function to visualize a tree with a wide variety of options and customizable features
 # Reference taxons should be defined as reference = 'taxon_ID'.
-
 
 visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, pattern_id = NULL,
                            bootstrap_numbers = TRUE, bootstrap_number_nudge_y = 3.2, bootstrap_circles = FALSE, bootstrap_legend = FALSE, 
@@ -723,6 +713,3 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
   }
 }
 
-rm(list = c("bootstrap_collapse", "flip_node", "group_descendants", "load_packages", "node_ids", "read_tree"))
-
-roxygen2::roxygenise()
