@@ -25,7 +25,7 @@ load_packages <- function( tools ) {
 
   for ( pkg in tools ) {
     if ( pkg %in% tmp$Package ) {
-      library(pkg, character.only = TRUE)
+      library (pkg, character.only = TRUE)
     } else {
          print(sprintf("%s %s", pkg, "is not installed. Installing it!"))
       
@@ -61,8 +61,13 @@ load_packages(dependencies)
 #' @export
 
 # Function to read and preprocess a tree
-read_tree <- function(input_file) {
-  t <- treeio::read.newick(input_file, node.label = "support")
+read_tree <- function(input_file, bootstrap_support = TRUE) {
+  if (bootstrap_support == TRUE) {
+    t <- treeio::read.newick(input_file, node.label = 'support' )
+  } else {
+    t <- treeio::read.newick(input_file)
+  } 
+  
   return(t)
 }
 
@@ -313,15 +318,21 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
       stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
   
-  # Append bootstrap values in the label section, in the nodes which are NOT tips
-  # The bootstrap values will be kept there and transferred along with the labels in the new node numbering of the subtree
+  if ( "support" %in% colnames(tree_obj@data) ) { 
+    
+    # Append bootstrap values in the label section, in the nodes which are NOT tips
+    # The bootstrap values will be kept there and transferred along with the labels in the new node numbering of the subtree
 
-  phylo_data <- as.treedata(left_join(as_tibble(tree_obj@phylo), as_tibble(tree_obj@data)) %>%
-                            mutate(isTip = ifelse(!is.na(label), TRUE, FALSE)) %>% 
-                            mutate(label = ifelse(isTip == FALSE, as.character(support), label)) %>% 
-                            select(-support)
-                           )
-  
+    phylo_data <- as.treedata(left_join(as_tibble(tree_obj@phylo), as_tibble(tree_obj@data)) %>%
+                              mutate(isTip = ifelse(!is.na(label), TRUE, FALSE)) %>% 
+                              mutate(label = ifelse(isTip == FALSE, as.character(support), label)) %>% 
+                              select(-support)
+                             )
+    
+  } else {
+      phylo_data <- tree_obj
+  }
+    
   t <- Preorder(phylo_data@phylo)
   
   # If option for branch length is not TRUE, make branch lengths NULL
@@ -342,24 +353,27 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
     
   subtree <- ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1m, tip2m)))
   
-  # If node is NOT tip, add the labels in the bs_support column and make the labels NA - mapping according to new node numbering 
-  subtree_f <- as.treedata(subtree) %>%
-               mutate(bs_support = ifelse(isTip == FALSE, label, NA)) %>%
-               mutate(label = ifelse(isTip == FALSE, NA, label))
-  
-  # To create an object compatible with visualize_tree, initialize the 'node' and 'support' columns in the data slice of the treedata class
-  subtree_f@data <- tibble(
-      node = rep(NA, length = length(subtree_f@extraInfo$node)),
-      support = rep(NA, length = length(subtree_f@extraInfo$bs_support))
-  )
-  
-  # ... and the add the node number and bs_support values
-  subtree_f@data <- tibble(
-      node = subtree_f@extraInfo$node,
-      support = as.numeric(subtree_f@extraInfo$bs_support)
-  ) 
-  
-  return ( subtree_f )
+  if ( !( "support" %in% colnames(tree_obj@data)) ) { 
+    return ( subtree )
+  } else {
+      # If node is NOT tip, add the labels in the bs_support column and make the labels NA - mapping according to new node numbering 
+      subtree_f <- as.treedata(subtree) %>%
+                   mutate(bs_support = ifelse(isTip == FALSE, label, NA)) %>%
+                   mutate(label = ifelse(isTip == FALSE, NA, label))
+      
+      # To create an object compatible with visualize_tree, initialize the 'node' and 'support' columns in the data slice of the treedata class
+      subtree_f@data <- tibble(
+          node = rep(NA, length = length(subtree_f@extraInfo$node)),
+          support = rep(NA, length = length(subtree_f@extraInfo$bs_support))
+      )
+      
+      # ... and the add the node number and bs_support values
+      subtree_f@data <- tibble(
+          node = subtree_f@extraInfo$node,
+          support = as.numeric(subtree_f@extraInfo$bs_support)
+      ) 
+      return ( subtree_f )
+  }
 } 
 
 #==================================== TREE VISUALIZATION FUNCTIONS ====================================#
@@ -569,42 +583,50 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
         stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
   
-  tree_obj <- as.treedata (as_tibble(tree_obj) %>%
-                           mutate(bs_color = case_when(support < 50 ~ "white",
-                                                       support >= 50 & support < 75 ~ "grey",
-                                                       support >= 75 ~ "black",
-                                                       TRUE ~ "NA"  # Default case if none of the conditions are met
-                                                       )))
+  # Check if bootstrap support is present in the tree object
+  if ( "support" %in% colnames(tree_obj@data) ) { 
+      tree_obj <- as.treedata (as_tibble(tree_obj) %>%
+                  mutate(bs_color = case_when(support < 50 ~ "white",
+                                              support >= 50 & support < 75 ~ "grey",
+                                              support >= 75 ~ "black",
+                                              TRUE ~ "NA"  # Default case if none of the conditions are met
+                                              )))
+      
+      plot <- ggtree(tree_obj, layout = form)
   
-  plot <- ggtree(tree_obj, layout = form)
-
-  # Manipulate bootstrap values
-  if ( bootstrap_numbers == TRUE && bootstrap_circles != TRUE ) {
-    if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
-      # bootstrap_number_nudge_y controls the relative height of the number on top of branch
-      # Use larger values as the size of the tree increases
-      plot <- plot + geom_nodelab(  mapping = aes(x = branch, label = support), nudge_y = bootstrap_number_nudge_y, size = 3) 
+      # Manipulate bootstrap values
+      if ( bootstrap_numbers == TRUE && bootstrap_circles != TRUE ) {
+        if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
+          # bootstrap_number_nudge_y controls the relative height of the number on top of branch
+          # Use larger values as the size of the tree increases
+          plot <- plot + geom_nodelab(  mapping = aes(x = branch, label = support), nudge_y = bootstrap_number_nudge_y, size = 3) 
+          } else {
+              print ("Bootstrap values do not exist.")
+          }
+      } else if ( bootstrap_numbers != TRUE && bootstrap_circles == TRUE ) {
+          if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
+            bootstrap_legend <- 'Legend'
+          
+            plot <- plot + geom_nodelab(fill = tree_obj@data$bs_color, 
+                                        color = ifelse(is.na(tree_obj@data$bs_color), "black", NA),
+                                        shape = 21, size = 1.7)
+          
+          if (bootstrap_legend == TRUE) {
+            plot <- plot + theme_tree(legend.position = c(0.2, 0.2))
+          }
+        }
+      } else if ( bootstrap_numbers == TRUE && bootstrap_circles == TRUE ) {
+            stop ("bootstrap_numbers = TRUE (default) and bootstrap_circles = TRUE. Please select either bootstrap circles or bootstrap numbers option.")
       } else {
-          print ("Bootstrap values do not exist.")
+            print ("Both bootstrap_circles and bootstrap_numbers options are FALSE. Bootstrap values will not be printed.")
       }
-  } else if ( bootstrap_numbers != TRUE && bootstrap_circles == TRUE ) {
-      if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
-        bootstrap_legend <- 'Legend'
       
-        plot <- plot + geom_nodelab(fill = tree_obj@data$bs_color, 
-                                    color = ifelse(is.na(tree_obj@data$bs_color), "black", NA),
-                                    shape = 21, size = 1.7)
-      
-      if (bootstrap_legend == TRUE) {
-        plot <- plot + theme_tree(legend.position = c(0.2, 0.2))
-      }
-    }
-  } else if ( bootstrap_numbers == TRUE && bootstrap_circles == TRUE ) {
-        stop ("bootstrap_numbers = TRUE (default) and bootstrap_circles = TRUE. Please select either bootstrap circles or bootstrap numbers option.")
   } else {
-        print ("Both bootstrap_circles and bootstrap_numbers options are FALSE. Bootstrap values will not be printed.")
+      tree_obj <- tree_obj
+      plot <- ggtree(tree_obj, layout = form)
+      print ("Bootstrap values are not present in the tree object.")
   }
-
+  
    # Visualize phylogenetic tree with an option to select the printed tips, based on pattern
    if (is.null(color) && is.null(shape) ) {
      if (length(list(...)) > 0) { 
