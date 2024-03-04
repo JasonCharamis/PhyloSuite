@@ -92,7 +92,7 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' 
 #' @export
 
-node_ids <- function(tree, node_id_color = "darkred", ...) {
+node_ids <- function(tree, node_id_color = "darkred", tip_label_size = 2, ...) {
   
   # Open phylogenetic tree file and/or object
   if (typeof(tree) == "character") {
@@ -299,7 +299,7 @@ group_descendants <- function(tree, ...) {
 #' @export
 
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
-extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
+extract_subtree <- function(tree, tip1, tip2) {
 
   # Open phylogenetic tree file and/or object
   if (typeof(tree) == "character") {
@@ -335,12 +335,6 @@ extract_subtree <- function(tree, tip1, tip2, branch_length = TRUE) {
     
   t <- Preorder(phylo_data@phylo)
   
-  # If option for branch length is not TRUE, make branch lengths NULL
-  if (!(branch_length == TRUE | branch_length == T)) {
-     print("Option branch length is deactivated. As a result, the subtree will be extracted as a cladogram with equal branch lengths.")
-     t$edge.length <- NULL
-  } 
-    
   # Extract subtree based on anchor tip labels and/or patterns
   tip1m <- t$tip.label[grepl(tip1, t$tip.label)]
   tip2m <- t$tip.label[grepl(tip2, t$tip.label)]
@@ -561,9 +555,10 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 # Reference taxons should be defined as reference = 'taxon_ID'.
 
 visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, pattern_id = NULL,
-                           color = NULL, shape = NULL, mappings_legend = FALSE, tip_label_size = 2, tip_shape_size = 3,
-                           bootstrap_numbers = TRUE, bootstrap_number_nudge_x = 1, bootstrap_number_nudge_y = 3.2, node_label_size = 1, bootstrap_circles = FALSE, bootstrap_legend = FALSE, 
-                           clades = NULL, labels = NULL, 
+                           color = NULL, shape = NULL, mappings_legend = FALSE, tip_shape_size = 3,  
+                           tip_label_size = 2, fontsize = 3,
+                           bootstrap_numbers = TRUE, bootstrap_number_nudge_x = 1, bootstrap_number_nudge_y = 3.2, node_label_size = 3, bootstrap_circles = FALSE, bootstrap_legend = FALSE, 
+                           branch_length = TRUE, clades = NULL, labeldist = 1, bardist = 1,
                            save = TRUE, output = NULL, interactive = FALSE, ...) {
   
   # Open phylogenetic tree file and/or object
@@ -582,6 +577,12 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
   } else {
         stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
+  
+  # If option for branch length is not TRUE, make branch lengths NULL
+  if (!(branch_length == TRUE | branch_length == T)) {
+    print("Option branch length is deactivated. As a result, the subtree will be extracted as a cladogram with equal branch lengths.")
+    tree_obj@phylo$edge.length <- NULL
+  } 
   
   # Check if bootstrap support is present in the tree object
   if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
@@ -604,8 +605,6 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
               print ("Bootstrap values do not exist.")
           }
       } else if ( bootstrap_numbers != TRUE && bootstrap_circles == TRUE ) {
-            print(!is.na(tree_obj@data$bs_color))
-          
             plot <- plot + geom_point2(fill = ifelse(!is.na(tree_obj@data$bs_color), tree_obj@data$bs_color, NA),
                                          color = ifelse(!is.na(tree_obj@data$bs_color), "black", NA),
                                          shape = 21, size = 1.7)
@@ -681,12 +680,14 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
            reference <- as.character(unlist(references))
            
            if (any(grepl(reference, tree_obj@phylo$tip.label))) {
-               ref_species <- tree_obj@phylo$tip.label[which(sapply(tree_obj@phylo$tip.label, function(x) any(grepl(reference, x))))]
-               ref_dict <- data.frame(
-                 label = ref_species,
-                 reference_flag = TRUE
-               )
-            
+             
+               ref_species <- lapply(references, function(reference) {
+                 matching_labels <- tree_obj@phylo$tip.label[which(sapply(tree_obj@phylo$tip.label, function(x) any(grepl(reference, x))))]
+                 data.frame(label = matching_labels, reference_flag = TRUE)
+               })
+               
+               ref_dict <- do.call(rbind, ref_species)
+
                plot_ref <- plot %<+% ref_dict 
                plot <- plot_ref + geom_tiplab(aes(label = ifelse(reference_flag, label, "")), size = tip_label_size, color = "black")
                
@@ -780,16 +781,13 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
        }
    }
         
-   if (!is.null(clades) && !is.null(labels)) {
-       plot <- plot + geom_cladelab(node = clades, label = labels, align = TRUE, fill = 'white',
-                                    offset.text = labeldist, barsize = 0.9, offset.bar = 0.5, fontsize = fontsize)
-   } else if (!is.null(clades) && is.null(labels)) {
-       plot <- plot + geom_cladelab(node = clades, label = "", align = TRUE, fill = 'white',
-                                    offset.text = labeldist, barsize = 0.9, offset.bar = 0.5, fontsize = fontsize)
-   } else if (is.null(clades) && !is.null(labels)) {
-       plot <- plot + geom_cladelab(node = "", label = labels, align = TRUE, fill = 'white',
-                                    offset.text = labeldist, barsize = 0.9, offset.bar = 0.5, fontsize = fontsize)
+   if (!is.null(clades)) {
+       for (i in names(clades)) {
+         plot <- plot + geom_cladelab(node = clades[i], label = i, align = TRUE, fill = 'black',
+                                      offset.text = labeldist, barsize = 0.9, offset.bar = bardist, fontsize = fontsize)
+       }
    }
+   
   
   if (!(is.null(output))) {
     save == TRUE

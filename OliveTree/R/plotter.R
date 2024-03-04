@@ -1,43 +1,47 @@
-## Library with functions related to plotting.
+#' Library of plotting functions.
+#' @import ggplot2
+#' @import ggplotify
+#' @import gridExtra
+#'
+#' @title load_packages: Function to check if a package is installed, and if not, install it.
+#' @description This function checks if a package is installed. If not, it installs the package using BiocManager if available, otherwise using install.packages.
+#' @param tools A character vector of package names to be checked and installed.
+#' @return NULL
+#' @export
 
-package_install <- function ( package_name ) {
-  if (requireNamespace(package_name, quietly = TRUE)) {
-    library(package_name, character.only = TRUE)
-  }
+# Function to check if a package is installed, and if not, install it.
+# Function to install or load a package
+load_packages <- function( tools ) {
+  tmp <- as.data.frame(installed.packages()) 
+  max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
+  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ]
   
-  else {
-    print ( (sprintf("%s %s",package_name, "is not installed. Installing it!")))
-
-    if ( package_name %in% BiocManager::available() ) {
-      BiocManager::install(package_name)
+  for ( pkg in tools ) {
+    if ( pkg %in% tmp$Package ) {
+      library (pkg, character.only = TRUE)
+    } else {
+      print(sprintf("%s %s", pkg, "is not installed. Installing it!"))
+      
+      if ( pkg %in% BiocManager::available(pkg) ) {
+        BiocManager::install(pkg, dependencies = TRUE, update = TRUE)
+      } else {
+        install.packages(pkg, dependencies = TRUE, ask = FALSE)
+      }
     }
-    
-    else {
-      install.packages(package_name)
-    }
-    
   }
 }
 
-dependencies <- c("ggplot2","ggplotify")
+dependencies <- c("ggplot2", "ggplotify", "gridExtra")
 
-for ( i in dependencies ) { 
-  package_install(i)
-}
+load_packages(dependencies)
 
 
 multipanel <- function ( horizontal = "T", ... ) {
-  package_install("gridExtra")
-
   plots <- list(...)
   
-  ## arrange horizontally
-  if ( horizontal == "T") {
+  if ( horizontal == "T") { # Arrange horizontally
     multi_panel_figure <- grid.arrange(grobs = plots, ncol = length(plots), nrow = 1)
-  }
-  
-  ## arrange vectically
-  else {
+  } else { # Arrange vertically
     multi_panel_figure <- grid.arrange(grobs = plots, nrow = length(plots), ncol = 1)
   }
   return (multi_panel_figure)
