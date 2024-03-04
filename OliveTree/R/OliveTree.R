@@ -65,7 +65,7 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
   if (bootstrap_support == TRUE) {
     t <- treeio::read.newick(input_file, node.label = 'support' )
   } else {
-    t <- treeio::read.newick(input_file)
+      t <- treeio::read.newick(input_file)
   } 
   
   return(t)
@@ -513,7 +513,7 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' Reference taxons should be defined as reference = 'taxon_ID'.
 #'
 #' @param tree Phylogenetic tree in Newick format, treedata, or phylo class object.
-#' @param form Layout of the tree based on ggtree options (Default: "rectangular").
+#' @param form Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight (Default: "rectangular").
 #' @param tiplabels Logical. Print tip labels on the tree.
 #' @param pattern_id Pattern to match tip labels for printing.
 #' @param bootstrap_numbers Logical. Display bootstrap values on branches. Default: TRUE
@@ -561,8 +561,8 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 # Reference taxons should be defined as reference = 'taxon_ID'.
 
 visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, pattern_id = NULL,
-                           bootstrap_numbers = TRUE, bootstrap_number_nudge_y = 3.2, bootstrap_circles = FALSE, bootstrap_legend = FALSE, 
                            color = NULL, shape = NULL, mappings_legend = FALSE, tip_label_size = 2, tip_shape_size = 3,
+                           bootstrap_numbers = TRUE, bootstrap_number_nudge_x = 1, bootstrap_number_nudge_y = 3.2, node_label_size = 1, bootstrap_circles = FALSE, bootstrap_legend = FALSE, 
                            clades = NULL, labels = NULL, 
                            save = TRUE, output = NULL, interactive = FALSE, ...) {
   
@@ -584,12 +584,12 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
   }
   
   # Check if bootstrap support is present in the tree object
-  if ( "support" %in% colnames(tree_obj@data) ) { 
+  if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
       tree_obj <- as.treedata (as_tibble(tree_obj) %>%
-                  mutate(bs_color = case_when(support < 50 ~ "white",
+                  mutate(bs_color = case_when(support < 50 ~ "snow2",
                                               support >= 50 & support < 75 ~ "grey",
                                               support >= 75 ~ "black",
-                                              TRUE ~ "NA"  # Default case if none of the conditions are met
+                                              TRUE ~ NA  # Default case if none of the conditions are met
                                               )))
       
       plot <- ggtree(tree_obj, layout = form)
@@ -599,28 +599,26 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
         if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
           # bootstrap_number_nudge_y controls the relative height of the number on top of branch
           # Use larger values as the size of the tree increases
-          plot <- plot + geom_nodelab(  mapping = aes(x = branch, label = support), nudge_y = bootstrap_number_nudge_y, size = 3) 
+          plot <- plot + geom_nodelab(  mapping = aes(x = branch, label = support), nudge_x = bootstrap_number_nudge_x, nudge_y = bootstrap_number_nudge_y, size = node_label_size) 
           } else {
               print ("Bootstrap values do not exist.")
           }
       } else if ( bootstrap_numbers != TRUE && bootstrap_circles == TRUE ) {
-          if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
-            bootstrap_legend <- 'Legend'
+            print(!is.na(tree_obj@data$bs_color))
           
-            plot <- plot + geom_nodelab(fill = tree_obj@data$bs_color, 
-                                        color = ifelse(is.na(tree_obj@data$bs_color), "black", NA),
-                                        shape = 21, size = 1.7)
+            plot <- plot + geom_point2(fill = ifelse(!is.na(tree_obj@data$bs_color), tree_obj@data$bs_color, NA),
+                                         color = ifelse(!is.na(tree_obj@data$bs_color), "black", NA),
+                                         shape = 21, size = 1.7)
           
           if (bootstrap_legend == TRUE) {
             plot <- plot + theme_tree(legend.position = c(0.2, 0.2))
           }
-        }
+            
       } else if ( bootstrap_numbers == TRUE && bootstrap_circles == TRUE ) {
             stop ("bootstrap_numbers = TRUE (default) and bootstrap_circles = TRUE. Please select either bootstrap circles or bootstrap numbers option.")
       } else {
             print ("Both bootstrap_circles and bootstrap_numbers options are FALSE. Bootstrap values will not be printed.")
       }
-      
   } else {
       tree_obj <- tree_obj
       plot <- ggtree(tree_obj, layout = form)
@@ -690,7 +688,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
                )
             
                plot_ref <- plot %<+% ref_dict 
-               plot <- plot_ref + geom_tiplab(aes(label = ifelse(reference_flag, label, "")), size = 2, color = "black")
+               plot <- plot_ref + geom_tiplab(aes(label = ifelse(reference_flag, label, "")), size = tip_label_size, color = "black")
                
                non_ref_species <- setdiff(tree_obj@phylo$tip.label, ref_species)
                species_dict <- lapply(non_ref_species, function(label) {
@@ -792,6 +790,10 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
        plot <- plot + geom_cladelab(node = "", label = labels, align = TRUE, fill = 'white',
                                     offset.text = labeldist, barsize = 0.9, offset.bar = 0.5, fontsize = fontsize)
    }
+  
+  if (!(is.null(output))) {
+    save == TRUE
+  }
   
    # Export plot with provided options
    if (exists("plot")) {
