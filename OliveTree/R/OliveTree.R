@@ -91,7 +91,7 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' }
 #' 
 #' @export
-
+ 
 node_ids <- function(tree, node_id_color = "darkred", tip_label_size = 2, ...) {
   
   # Open phylogenetic tree file and/or object
