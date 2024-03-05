@@ -5,7 +5,7 @@
 \title{read_tree: Read a phylogenetic tree.
 This function reads a phylogenetic tree from a file.}
 \usage{
-read_tree(input_file)
+read_tree(input_file, bootstrap_support = TRUE)
 }
 \arguments{
 \item{input_file}{Path to the file containing the phylogenetic tree.}

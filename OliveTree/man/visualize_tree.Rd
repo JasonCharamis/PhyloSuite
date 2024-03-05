@@ -10,17 +10,22 @@ visualize_tree(
   form = "rectangular",
   tiplabels = FALSE,
   pattern_id = NULL,
-  bootstrap_numbers = TRUE,
-  bootstrap_number_nudge_y = 3.2,
-  bootstrap_circles = FALSE,
-  bootstrap_legend = FALSE,
   color = NULL,
   shape = NULL,
   mappings_legend = FALSE,
-  tip_label_size = 2,
   tip_shape_size = 3,
+  tip_label_size = 2,
+  fontsize = 3,
+  bootstrap_numbers = TRUE,
+  bootstrap_number_nudge_x = 1,
+  bootstrap_number_nudge_y = 3.2,
+  node_label_size = 3,
+  bootstrap_circles = FALSE,
+  bootstrap_legend = FALSE,
+  branch_length = TRUE,
   clades = NULL,
-  labels = NULL,
+  labeldist = 1,
+  bardist = 1,
   save = TRUE,
   output = NULL,
   interactive = FALSE,
@@ -30,11 +35,21 @@ visualize_tree(
 \arguments{
 \item{tree}{Phylogenetic tree in Newick format, treedata, or phylo class object.}
 
-\item{form}{Layout of the tree based on ggtree options (Default: "rectangular").}
+\item{form}{Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight (Default: "rectangular").}
 
 \item{tiplabels}{Logical. Print tip labels on the tree.}
 
 \item{pattern_id}{Pattern to match tip labels for printing.}
+
+\item{color}{Vector specifying tip color mappings.}
+
+\item{shape}{Vector specifying tip shape mappings.}
+
+\item{mappings_legend}{Logical. Display legend for color and shape mappings.}
+
+\item{tip_shape_size}{Numeric. Size of tip shapes.}
+
+\item{tip_label_size}{Numeric. Size of tip labels.}
 
 \item{bootstrap_numbers}{Logical. Display bootstrap values on branches. Default: TRUE}
 
@@ -44,19 +59,7 @@ visualize_tree(
 
 \item{bootstrap_legend}{Logical. Display legend for bootstrap circles.}
 
-\item{color}{Vector specifying tip color mappings.}
-
-\item{shape}{Vector specifying tip shape mappings.}
-
-\item{mappings_legend}{Logical. Display legend for color and shape mappings.}
-
-\item{tip_label_size}{Numeric. Size of tip labels.}
-
-\item{tip_shape_size}{Numeric. Size of tip shapes.}
-
-\item{clades}{Vector of node IDs to label.}
-
-\item{labels}{Vector of labels for the specified clades.}
+\item{clades}{Associative vector of node IDs and related labels.}
 
 \item{save}{Logical. Save the plot.}
 

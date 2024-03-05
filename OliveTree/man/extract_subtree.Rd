@@ -5,7 +5,7 @@
 \title{extract_subtree: Extract Subtree
 Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor nodes while preserving branch lengths and bootstrap values.}
 \usage{
-extract_subtree(tree, tip1, tip2, branch_length = TRUE)
+extract_subtree(tree, tip1, tip2)
 }
 \arguments{
 \item{tree}{A phylogenetic tree object of class 'phylo' or 'treedata'.}

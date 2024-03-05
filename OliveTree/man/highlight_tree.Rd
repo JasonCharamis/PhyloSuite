@@ -17,9 +17,9 @@ highlight_tree(
 \arguments{
 \item{tree}{A phylogenetic tree object of class 'phylo' or a file path to a tree file (e.g., in Newick format).}
 
-\item{highlight_nodes}{A list or vector of node labels or patterns to highlight on the tree.}
+\item{highlight_nodes}{A associative vector of node labels with associated group names to highlight on the tree.}
 
-\item{colors}{A vector of colors corresponding to the highlight nodes. If not provided, random colors will be assigned.}
+\item{colors}{An associative vector of colors with optional group names to connect with the highlight nodes. If not provided, random colors will be assigned.}
 
 \item{layout}{A character string specifying the layout of the tree. Options include "rectangular", "circular", etc.}
 

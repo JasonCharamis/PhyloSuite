@@ -6,10 +6,18 @@
 This function generates a plot of a phylogenetic tree with node IDs displayed. Additionally, it offers the option
 to highlight specific tip labels that match a user-provided pattern.}
 \usage{
-node_ids(tree, node_id_color = "darkred", ...)
+node_ids(
+  tree,
+  form = "circular",
+  node_id_color = "darkred",
+  tip_label_size = 2,
+  ...
+)
 }
 \arguments{
 \item{tree}{An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.}
+
+\item{form}{Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight (Default: "rectangular").}
 
 \item{node_id_color}{Color of the printed node ids. Default is "darkred".}
 
