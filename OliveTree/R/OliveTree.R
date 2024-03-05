@@ -92,7 +92,7 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' 
 #' @export
  
-node_ids <- function(tree, node_id_color = "darkred", tip_label_size = 2, ...) {
+node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, ...) {
   
   # Open phylogenetic tree file and/or object
   if (typeof(tree) == "character") {
@@ -112,7 +112,7 @@ node_ids <- function(tree, node_id_color = "darkred", tip_label_size = 2, ...) {
   }
   
   # Create the base tree plot with node labels
-  plot <- ggtree(tree_obj, layout = "rectangular") + 
+  plot <- ggtree(tree_obj, layout = form) + 
           geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
   
   references <- list(...)
@@ -293,7 +293,7 @@ group_descendants <- function(tree, ...) {
 #'
 #' @importFrom dplyr left_join select mutate as_tibble
 #' @importFrom ape extract.clade
-#' @importFrom phytools findMRCA
+#' @importFrom phytools findMRCA 
 #' @importFrom treeio as.treedata read.newick
 #'
 #' @export
@@ -422,86 +422,41 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
       stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
   
+  plot <- ggtree(tree_obj, layout = layout) + 
+          geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
+          scale_starshape_identity() + scale_fill_identity()
+
   # Check if highlight_nodes is a list or a vector
-  if (is.list(highlight_nodes)) {
-    # It's a list, create a data frame with random colors
-    if (is.null(colors)) {
-      # Generate random colors if colors are not provided
-      highlight <- data.frame(
-        Groups = names(highlight_nodes),  
-        Label = highlight_nodes,
-        Color = sample(colors(), length(highlight_nodes))
-      )
-    } else {
-      # Use provided colors
-      highlight <- data.frame(
-        Groups = names(highlight_nodes),  
-        Label = highlight_nodes,
-        Color = colors
-      )
-    }
-  } else if (is.vector(highlight_nodes)) {
-      # It's a vector, create a data frame with provided colors or generate random colors
-      if (is.null(colors)) {
-        # Generate random colors if colors are not provided
-        highlight <- data.frame(
-          Groups = NULL,  # You can specify the groups if needed
-          Label = highlight_nodes,
-          Color = sample(colors(), length(highlight_nodes))
-        )
-      } else {
-        # Use provided colors
-        highlight <- data.frame(
-          Groups = NULL,  # You can specify the groups if needed
-          Label = highlight_nodes,
-          Color = colors
-        )
-      }
+  if (is.vector(highlight_nodes)) {
+    # It's a vector, create a data frame with provided colors or generate random colors
+    highlight <- data.frame(
+      Group = names(highlight_nodes),
+      Label = highlight_nodes,
+      Color = sapply(names(highlight_nodes), function(x) {
+        if (is.null(colors)) {
+          sample(colors(), 1)
+        } else {
+          colors[x]
+        }
+      })
+    )
   } else {
-      stop("highlight_nodes must be either a list or a vector.")
+      stop("highlight_nodes should a vector.")
   }
-  
-  # Create the ggtree plot
-  if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-      tree_obj <- read_tree(tree)
-      
-      plot <- ggtree(tree_obj, layout = layout) + 
-              geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
-              scale_starshape_identity() + scale_fill_identity()
-  } else {
-      plot <- ggtree(tree_obj, layout = layout) + 
-              geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
-              scale_starshape_identity() + scale_fill_identity()
-  }
-  
+
   # Highlight the nodes
-  if (!is.null(highlight$Groups)) {
-    plot <- plot + geom_hilight(
-                          data = highlight,
-                          aes(node = Label, fill = Groups),
-                          alpha = 0.3, extend = 0.10, linetype = 1, linewidth = 0.9, 
-                          colour = "black", show.legend = TRUE) + scale_fill_manual(values = highlight$Color)
-  } else {
-      plot <- plot + geom_hilight(
-                        data = highlight,
-                        aes(node = Label, fill = highlight$Color),
-                        alpha = 0.3, extend = 0.10, linetype = 1, linewidth = 0.9, 
-                        colour = "black", show.legend = TRUE) 
-  }
-  
-  # Save the highlighted plot
-  if (exists("plot")) {
-    if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-      ggsave(plot = plot, sprintf("%s_highlighted.svg", sub(".nwk|.tre", "", tree)), dpi = 600)
-      sprintf("Tree plotted and saved as %s_highlighted.svg", sub(".nwk|.tre", "", tree))
-    } else {
-        ggsave(plot = plot, "tree_plot_highlighted.svg", dpi = 600)
-        print("Tree plotted and saved as tree_plot_highlighted.svg!")
-    }
-    
-    return(plot)
-  }
+  plot <- plot + geom_hilight(data = highlight,
+                              aes(node = Label, fill = Color),
+                              color = "black",
+                              alpha = 0.3, 
+                              extend = 0.10, 
+                              linetype = 1, 
+                              linewidth = 0.9, 
+                              show.legend = TRUE
+                              )
+  return(plot)
 }
+
 
 #' Function to visualize a tree with a wide variety of options and customizable features
 #' Reference taxons should be defined as reference = 'taxon_ID'.

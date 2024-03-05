@@ -14,7 +14,7 @@
 load_packages <- function( tools ) {
   tmp <- as.data.frame(installed.packages()) 
   max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
-  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ]
+  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ] 
   
   for ( pkg in tools ) {
     if ( pkg %in% tmp$Package ) {
