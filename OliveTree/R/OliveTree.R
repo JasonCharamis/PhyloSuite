@@ -39,7 +39,7 @@ load_packages <- function( tools ) {
 }
 
 # Load required packages or install them if necessary
-dependencies <- c("roxygen2","ape", "phytools", "treeio", "tidytree",
+dependencies <- c("ape", "phytools", "treeio", "tidytree",
                   "TreeTools", "ggstar", "ggtree","dplyr", "plotly")
 
 load_packages(dependencies)
@@ -76,6 +76,7 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' to highlight specific tip labels that match a user-provided pattern.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
+#' @param form Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight (Default: "rectangular").
 #' @param node_id_color Color of the printed node ids. Default is "darkred".
 #' @param ... Pattern(s) for printing tip labels that match them.
 #' 
@@ -376,8 +377,8 @@ extract_subtree <- function(tree, tip1, tip2) {
 #' Function to highlight nodes on a phylogenetic tree.
 #'
 #' @param tree A phylogenetic tree object of class 'phylo' or a file path to a tree file (e.g., in Newick format).
-#' @param highlight_nodes A list or vector of node labels or patterns to highlight on the tree.
-#' @param colors A vector of colors corresponding to the highlight nodes. If not provided, random colors will be assigned.
+#' @param highlight_nodes A associative vector of node labels with associated group names to highlight on the tree.
+#' @param colors An associative vector of colors with optional group names to connect with the highlight nodes. If not provided, random colors will be assigned.
 #' @param layout A character string specifying the layout of the tree. Options include "rectangular", "circular", etc.
 #' @param name A character string specifying the name for the highlighted plot.
 #'
@@ -474,8 +475,7 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' @param mappings_legend Logical. Display legend for color and shape mappings.
 #' @param tip_label_size Numeric. Size of tip labels.
 #' @param tip_shape_size Numeric. Size of tip shapes.
-#' @param clades Vector of node IDs to label.
-#' @param labels Vector of labels for the specified clades.
+#' @param clades Associative vector of node IDs and related labels.
 #' @param save Logical. Save the plot.
 #' @param output Character. Output file name if saving the plot.
 #' @param interactive Logical. Generate an interactive plot using plotly.
