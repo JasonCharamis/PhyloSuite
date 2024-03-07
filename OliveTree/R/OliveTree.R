@@ -71,6 +71,30 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
   return(t)
 }
 
+#' .load_tree_object: Load phylogenetic tree file and/or object as treedata object
+#' 
+#' @param tree An object representing the phylogenetic tree. Should be a newick or nexus file, or an object of class 'treedata' or 'phylo'.
+ 
+.load_tree_object <- function (tree) {
+  if (typeof(tree) == "character") {
+    if (file.exists(tree)) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+        tree_obj <- read_tree(tree)
+      } else {
+          stop ("Provided file is not a newick or nexus file.")
+      }
+    } 
+  } else if (is(tree,"treedata")) {
+      tree_obj <- tree
+  } else if (is(tree,"phylo")) {
+      tree_obj <- treeio::as.treedata(tree)
+  } else {
+      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
+  }
+  return(tree_obj)
+}
+
+
 #' node_ids: Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.
 #' This function generates a plot of a phylogenetic tree with node IDs displayed. Additionally, it offers the option
 #' to highlight specific tip labels that match a user-provided pattern.
@@ -95,22 +119,7 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
  
 node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, ...) {
   
-  # Open phylogenetic tree file and/or object
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-        tree_obj <- read_tree(tree)
-      } else {
-          stop ("Provided file is not a newick or nexus file.")
-      }
-    } 
-  } else if (is(tree,"treedata")) {
-      tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
-  } else {
-      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
+  tree_obj <- .load_tree_object(tree)
   
   # Create the base tree plot with node labels
   plot <- ggtree(tree_obj, layout = form) + 
@@ -156,24 +165,7 @@ node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_lab
 #' @export
 
 bootstrap_collapse <- function(tree, cutoff = 0.5) { 
-  
-  # Open phylogenetic tree file and/or object
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-        tree_obj <- read_tree(tree)
-      } else {
-          stop ("Provided file is not a newick or nexus file.")
-      }
-    } 
-  } else if (is(tree,"treedata")) {
-      tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
-  } else {
-      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
-  
+  tree_obj <- .load_tree_object(tree)
   return(as.polytomy(tree_obj, feature = 'support', fun = function(x) as.numeric(x) < cutoff))
 }
 
@@ -200,30 +192,13 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 #' @export
 
 flip_nodes <- function(tree, node1, node2) {
-  
-  # Open phylogenetic tree file and/or object
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-        tree_obj <- read_tree(tree)
-      } else {
-        stop ("Provided file is not a newick or nexus file.")
-      }
-    } 
-  } else if (is(tree,"treedata")) {
-      tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
-  } else {
-      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
-  
+  tree_obj <- .load_tree_object(tree)
   return(as.phylo(ggtree::flip(ggtree(tree_obj), node1, node2)))
 }
 
 #' group_descendants: Group all descendant branches of specified node(s) in a phylogenetic tree.
 #' This function groups all descendant branches of the specified node(s) in a phylogenetic tree.
-#'
+#'  
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
 #' @param node1 The first node for grouping descendants.
 #' @param node2 The second node for grouping descendants.
@@ -245,24 +220,7 @@ flip_nodes <- function(tree, node1, node2) {
 
 # Function to group all descendant branches of node(s)
 group_descendants <- function(tree, ...) {
-  
-  # Open phylogenetic tree file and/or object
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-        tree_obj <- read_tree(tree)
-      } else {
-        stop ("Provided file is not a newick or nexus file.")
-      }
-    } 
-  } else if (is(tree,"treedata")) {
-      tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
-  } else {
-      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
-  
+  tree_obj <- .load_tree_object(tree)
   nodes <- list(...)
   return(tidytree::groupClade(tree_obj, .node = nodes))
 }
@@ -301,23 +259,7 @@ group_descendants <- function(tree, ...) {
 
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
 extract_subtree <- function(tree, tip1, tip2) {
-
-  # Open phylogenetic tree file and/or object
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-        tree_obj <- read_tree(tree)
-      } else {
-          stop ("Provided file is not a newick or nexus file.")
-      }
-    } 
-  } else if (is(tree,"treedata")) {
-      tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
-  } else {
-      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
+  tree_obj <- .load_tree_object(tree)
   
   if ( "support" %in% colnames(tree_obj@data) ) { 
     
@@ -405,23 +347,7 @@ extract_subtree <- function(tree, tip1, tip2) {
 
 # Function to highlight nodes on a tree
 highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circular", name = NULL, ...) {
-  
-  # Open phylogenetic tree file and/or object
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-        tree_obj <- read_tree(tree)
-      } else {
-          stop ("Provided file is not a newick or nexus file.")
-      }
-    } 
-  } else if (is(tree,"treedata")) {
-      tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
-  } else {
-      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
+  tree_obj <- .load_tree_object(tree)
   
   plot <- ggtree(tree_obj, layout = layout) + 
           geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
@@ -516,22 +442,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
                            branch_length = TRUE, clades = NULL, labeldist = 1, bardist = 1,
                            save = TRUE, output = NULL, interactive = FALSE, ...) {
   
-  # Open phylogenetic tree file and/or object
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-          tree_obj <- read_tree(tree)
-        } else {
-            stop ("Provided file is not a newick or nexus file.")
-        }
-    } 
-  } else if (is(tree,"treedata")) {
-        tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-        tree_obj <- treeio::as.treedata(tree)
-  } else {
-        stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
+  tree_obj <- .load_tree_object(tree)
   
   # If option for branch length is not TRUE, make branch lengths NULL
   if (!(branch_length == TRUE | branch_length == T)) {
