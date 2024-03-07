@@ -10,7 +10,7 @@
 #' @import plotly
 #' @import BiocManager
 #' 
-#' @title load_packages: Function to check if a package is installed, and if not, install it.
+#' @title .load_packages
 #' @description This function checks if a package is installed. If not, it installs the package using BiocManager if available, otherwise using install.packages.
 #' @param tools A character vector of package names to be checked and installed.
 #' @return NULL
@@ -46,8 +46,8 @@ load_packages(dependencies)
 
 #==================================== TREE MANIPULATION FUNCTIONS ====================================#
 
-#' read_tree: Read a phylogenetic tree.
-#' This function reads a phylogenetic tree from a file.
+#' read_tree
+#' Read a phylogenetic tree from a file.
 #'
 #' @param input_file Path to the file containing the phylogenetic tree.
 #' 
@@ -71,7 +71,8 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
   return(t)
 }
 
-#' .load_tree_object: Load phylogenetic tree file and/or object as treedata object
+#' .load_tree_object
+#' Load phylogenetic tree file and/or object as treedata object
 #' 
 #' @param tree An object representing the phylogenetic tree. Should be a newick or nexus file, or an object of class 'treedata' or 'phylo'.
  
@@ -95,8 +96,8 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 }
 
 
-#' node_ids: Print a phylogenetic tree with node IDs and an option to print tip labels matching a user-provided pattern.
-#' This function generates a plot of a phylogenetic tree with node IDs displayed. Additionally, it offers the option
+#' node_ids
+#' This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
 #' to highlight specific tip labels that match a user-provided pattern.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
@@ -144,7 +145,7 @@ node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_lab
   }
 }
 
-#' bootstrap_collapse: Collapse nodes in a phylogenetic tree based on bootstrap support.
+#' bootstrap_collapse
 #' This function collapses nodes in a phylogenetic tree where the bootstrap support is below a specified cutoff.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
@@ -168,7 +169,9 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
   return(as.polytomy(tree_obj, feature = 'support', fun = function(x) as.numeric(x) < cutoff))
 }
 
-#' flip_nodes: Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
+#' flip_nodes
+#'
+#' Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
 #' @param node1 The first node for flipping.
@@ -195,9 +198,10 @@ flip_nodes <- function(tree, node1, node2) {
   return(as.phylo(ggtree::flip(ggtree(tree_obj), node1, node2)))
 }
 
-#' group_descendants: Group all descendant branches of specified node(s) in a phylogenetic tree.
-#' This function groups all descendant branches of the specified node(s) in a phylogenetic tree.
-#'  
+#' group_descendants
+#'
+#' Group all descendant branches of specified node(s) in a phylogenetic tree.
+#'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
 #' @param node1 The first node for grouping descendants.
 #' @param node2 The second node for grouping descendants.
@@ -224,7 +228,7 @@ group_descendants <- function(tree, ...) {
   return(tidytree::groupClade(tree_obj, .node = nodes))
 }
 
-#' extract_subtree: Extract Subtree
+#' extract_subtree
 #' Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor nodes while preserving branch lengths and bootstrap values.
 #'
 #' @param tree A phylogenetic tree object of class 'phylo' or 'treedata'.
@@ -314,8 +318,9 @@ extract_subtree <- function(tree, tip1, tip2) {
 
 #==================================== TREE VISUALIZATION FUNCTIONS ====================================#
 
-#' Highlight Tree Nodes
-#' Function to highlight nodes on a phylogenetic tree.
+#' highlight_tree
+#'
+#' Function to highlight nodes and descendant leaves on a phylogenetic tree.
 #'
 #' @param tree A phylogenetic tree object of class 'phylo' or a file path to a tree file (e.g., in Newick format).
 #' @param highlight_nodes A associative vector of node labels with associated group names to highlight on the tree.
@@ -384,8 +389,8 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 }
 
 
+#' visualize_tree
 #' Function to visualize a tree with a wide variety of options and customizable features
-#' Reference taxons should be defined as reference = 'taxon_ID'.
 #'
 #' @param tree Phylogenetic tree in Newick format, treedata, or phylo class object.
 #' @param form Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight (Default: "rectangular").
@@ -430,9 +435,6 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' @importFrom plotly ggplotly
 #'
 #' @export 
-
-# Function to visualize a tree with a wide variety of options and customizable features
-# Reference taxons should be defined as reference = 'taxon_ID'.
 
 visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, pattern_id = NULL,
                            color = NULL, shape = NULL, mappings_legend = FALSE, tip_shape_size = 3,  
