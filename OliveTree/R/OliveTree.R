@@ -118,7 +118,6 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' @export
  
 node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, ...) {
-  
   tree_obj <- .load_tree_object(tree)
   
   # Create the base tree plot with node labels
