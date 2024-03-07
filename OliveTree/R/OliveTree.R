@@ -18,7 +18,7 @@
 
 # Function to check if a package is installed, and if not, install it.
 # Function to install or load a package
-load_packages <- function( tools ) {
+.load_packages <- function( tools ) {
   tmp <- as.data.frame(installed.packages()) 
   max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
   tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ]
