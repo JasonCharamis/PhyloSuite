@@ -13,4 +13,4 @@ Contains functions for:
 8. Visualizing trees with advanced features, including producing color and shape mappings for user-specified tip labels, isolating specific clades of tree and representing bootstrap support as colored circles at parent nodes of branches
 
 To load it run:
-source("oliveTree.R")
+source("OliveTree.R")
