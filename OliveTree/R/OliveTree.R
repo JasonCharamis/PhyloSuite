@@ -544,7 +544,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
                               print(paste("No color was found in the associative tip_label_colors vector for", x, "!\n"))
                               print(paste("Will use", tip_label_colors, "for all", x, "instances!"))
                               tip_label_colors
-                            }
+                          }
               )
       
          # Remove lines with NA values
