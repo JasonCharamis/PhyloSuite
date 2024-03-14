@@ -136,7 +136,7 @@ node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_lab
       )
       
       plot <- plot %<+% matching_dict
-      plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size)
+      plot <- plot + geom_tiplab2(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
       return(plot)
   }
 }
@@ -444,9 +444,10 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 
 visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, pattern_id = NULL,
                            color = NULL, shape = NULL, mappings_legend = FALSE, tip_shape_size = 3, references = NULL,
-                           tip_label_size = 2, fontsize = 3, tip_label_colors = NULL,
-                           bootstrap_numbers = TRUE, bootstrap_number_nudge_x = 1, bootstrap_number_nudge_y = 3.2, node_label_size = 3, bootstrap_circles = FALSE, bootstrap_legend = FALSE, 
-                           branch_length = TRUE, clades = NULL, labeldist = 1, bardist = 1,
+                           tip_label_size = 2, tip_label_colors = NULL, 
+                           bootstrap_numbers = TRUE, bootstrap_number_nudge_x = 1, bootstrap_number_nudge_y = 3.2, node_label_size = 3, 
+                           bootstrap_circles = FALSE, bootstrap_legend = FALSE, bootstrap_circle_size = 1.7,
+                           branch_length = TRUE, clades = NULL, labeldist = 1, bardist = 1, clade_label_size = 3,
                            save = TRUE, output = NULL, interactive = FALSE) {
   
   tree_obj <- .load_tree_object(tree)
@@ -489,7 +490,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
       } else if ( bootstrap_numbers != TRUE && bootstrap_circles == TRUE ) {
             plot <- plot + geom_point2(fill = ifelse(!is.na(tree_obj@data$bs_color), tree_obj@data$bs_color, NA),
                                        color = ifelse(!is.na(tree_obj@data$bs_color), "black", NA),
-                                       shape = 21, size = 1.7)
+                                       shape = 21, size = bootstrap_circle_size)
           
           if (bootstrap_legend == TRUE) {
             plot <- plot + theme_tree(legend.position = c(0.2, 0.2))
@@ -515,10 +516,9 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
      # If you want to print some of the species labels as text, do not include them into the color and shape mapping vectors, and provide them as 'references'
    if (tiplabels == TRUE) { 
      if (is.null(pattern_id)) {
-         plot <- plot + geom_tiplab(size = tip_label_size, color = ifelse(is.null(tip_label_colors), "black", tip_label_colors)) # Here default size is 1, because it will print all tip labels
+         plot <- plot + geom_tiplab2(size = tip_label_size, color = ifelse(is.null(tip_label_colors), "black", tip_label_colors), show.legend = mappings_legend, align.tip.label = TRUE) # Here default size is 1, because it will print all tip labels
          print("Printing phylogenetic tree with all tip labels!")
        } else {
-            
           if ( !is.null(tip_label_colors) ) {
             if ( length(tip_label_colors) != length(pattern_id) ) {
              stop("tip_label_colors and pattern_ids should have the same length!")
@@ -529,7 +529,6 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
            matching_labels <- unlist(sapply(pattern_id, function(pattern) {
              grep(pattern, tree_obj@phylo$tip.label, fixed = TRUE, value = TRUE)
            }), use.names = FALSE)
-           
            
              matching_dict <- data.frame(
                label = matching_labels,
@@ -551,9 +550,9 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
          matching_dict <- matching_dict[complete.cases(matching_dict), ]
          
          plot <- plot %<+% matching_dict
-         plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), 
+         plot <- plot + geom_tiplab2(aes(label = ifelse(matching_flag == TRUE, label, NA), 
                                              color = ifelse(matching_flag == TRUE, color_l, NA) ),
-                                         size = tip_label_size, show.legend = mappings_legend) +
+                                         size = tip_label_size, show.legend = mappings_legend, align.tip.label = TRUE) +
                              scale_color_identity()
               
               cat("Printing phylogenetic tree plot with tip labels matching", pattern_id, "!\n")
@@ -584,13 +583,14 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
               if (any(sapply(references, function(pattern) any(grepl(pattern, tree_obj@phylo$tip.label))))) {
                  
                    ref_species <- lapply(references, function(reference) {
-                     matching_labels <- tree_obj@phylo$tip.label[which(sapply(reference, function(pattern) any(grepl(pattern, tree_obj@phylo$tip.label))))]
+                     matching_labels <- grep(reference, tree_obj@phylo$tip.label, fixed = TRUE, value = TRUE)
                      data.frame(label = matching_labels, reference_flag = TRUE)
                    })
-                     
+                   
                    ref_dict <- do.call(rbind, ref_species)
                    plot_ref <- plot %<+% ref_dict 
-                   plot <- plot_ref + geom_tiplab(aes(label = ifelse(reference_flag, label, "")), size = tip_label_size, color = "black")
+                   plot <- plot_ref + geom_tiplab2(aes(label = ifelse(reference_flag, label, "")), 
+                                                   size = tip_label_size, color = "black", align.tip.label = TRUE)
                      
                    non_ref_species <- setdiff(tree_obj@phylo$tip.label, ref_species)
                    species_dict <- lapply(non_ref_species, function(label) {
@@ -649,8 +649,8 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
   
               plot <- plot + geom_star(mapping = aes( subset = isTip,
                                                       fill = ifelse(!is.na(species_colors), s_color, NA),
-                                                      starshape = ifelse(!is.na(species_shapes), s_shape, NA)),
-                                       size = tip_shape_size, show.legend = mappings_legend) + 
+                                                      starshape = ifelse(!is.na(species_shapes), s_shape, NA)), 
+                                                      show.legend = mappings_legend, size = tip_shape_size) + 
                              scale_fill_identity() +
                              scale_starshape_identity()
                              
@@ -664,17 +664,13 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
                 plot <- plot %<+% tip_colors_df
                 
                 if (tiplabels == TRUE) {
-                  plot <- plot + geom_tiplab2(mapping = aes( subset = isTip & !is.na(s_color),
-                                                             fill = ifelse(!is.na(s_color), s_color, NA),
-                                                             color = ifelse(!is.na(s_color), s_color, NA),
-                                                             show.legend = mappings_legend),
-                                              size = tip_shape_size) +
+                  plot <- plot + geom_tiplab(mapping = aes( subset = isTip & !is.na(s_color), color = ifelse(!is.na(s_color), s_color, NA)),
+                                             show.legend = FALSE, size = tip_shape_size, align.tip.label = TRUE) +
                                  scale_fill_identity()
                 } else {
                     plot <- plot + geom_star(mapping = aes( subset = isTip & !is.na(s_color),
-                                                              fill = ifelse(!is.na(species_colors), s_color, NA)),
-                                               starshape = "circle", 
-                                               size = tip_shape_size, show.legend = mappings_legend) +
+                                                            fill = ifelse(!is.na(species_colors), s_color, NA)),
+                                                            show.legend = mappings_legend, starshape = "circle", size = tip_shape_size) +
                                      scale_fill_identity()
                 }
                 
@@ -696,8 +692,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
   
                 plot <- plot + geom_star(mapping = aes( subset = isTip & !is.na(s_shape),
                                                         starshape = ifelse(!is.na(species_shapes), s_shape, NA)),
-                                         fill = "black",
-                                         size = tip_shape_size, show.legend = mappings_legend) +
+                                         fill = "black", size = tip_shape_size, show.legend = mappings_legend) +
                                scale_starshape_identity()
             }
          } else {
