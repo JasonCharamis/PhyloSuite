@@ -91,6 +91,7 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 }
 
 
+
 #' node_ids
 #' This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
 #' to highlight specific tip labels that match a user-provided pattern.
@@ -468,9 +469,9 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
     
    tree_obj <- as.treedata ( as_tibble(tree_obj) %>%
                mutate ( bs_color = case_when ( support < 50 ~ "snow2",
-                                                support >= 50 & support < 75 ~ "grey",
-                                                support >= 75 ~ "black",
-                                                TRUE ~ NA  # Default case if none of the conditions are met
+                                               support >= 50 & support < 75 ~ "grey",
+                                               support >= 75 ~ "black",
+                                               TRUE ~ NA  # Default case if none of the conditions are met
                                               )
                        )
                 )
@@ -513,8 +514,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
      
      # If you want to print some of the species labels as text, do not include them into the color and shape mapping vectors, and provide them as 'references'
    if (tiplabels == TRUE) { 
-       
-       if (is.null(pattern_id)) {
+     if (is.null(pattern_id)) {
          plot <- plot + geom_tiplab(size = tip_label_size, color = ifelse(is.null(tip_label_colors), "black", tip_label_colors)) # Here default size is 1, because it will print all tip labels
          print("Printing phylogenetic tree with all tip labels!")
        } else {
@@ -525,34 +525,33 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
             }
           }
          
-          if (any(sapply(pattern_id, function(pattern) any(grepl(pattern, tree_obj@phylo$tip.label))))) {
-              matching_labels <- unlist(sapply(pattern_id, function( pattern ) { 
-                                             grep(pattern, tree_obj@phylo$tip.label, fixed = TRUE, value = TRUE)
-                                 }), use.names = FALSE )
-              
-              matching_dict <- data.frame(
-                label = matching_labels,
-                matching_flag = TRUE,
-                color_l = sapply(matching_labels, function(x) {
-                  if (is.null(tip_label_colors)) {
-                    "black"
-                  } else if (is.vector(tip_label_colors) && length(tip_label_colors) > 0) { # If an associative vector for multiple pattern_ids is provided, produce color based on the user-provided mappings
-                      if (x %in% names(tip_label_colors)) {
-                        tip_label_colors[x]
-                      } else {
-                          print(paste("No color was found in the associative tip_label_colors vector for", x, "!\n"))
-                          print(paste("Will use", tip_label_colors, "for all", x, "instances!"))
-                          tip_label_colors
-                      }
-                  } else {
-                      print ("Provided tip_label_colors is not a valid vector.")
-                  }
-                })
+         if (any(sapply(pattern_id, function(pattern) any(grepl(pattern, tree_obj@phylo$tip.label))))) {
+           matching_labels <- unlist(sapply(pattern_id, function(pattern) {
+             grep(pattern, tree_obj@phylo$tip.label, fixed = TRUE, value = TRUE)
+           }), use.names = FALSE)
+           
+           
+             matching_dict <- data.frame(
+               label = matching_labels,
+               matching_flag = TRUE,
+               color_l = if (is.null(tip_label_colors)) {
+                            "black"
+                         } else if (length(tip_label_colors) > 0) {
+                            unlist( lapply(names(group_colors), function(label) { 
+                              ifelse( grepl(label, matching_labels), tip_label_colors[label], NA )
+                            }))
+                          } else {
+                              print(paste("No color was found in the associative tip_label_colors vector for", x, "!\n"))
+                              print(paste("Will use", tip_label_colors, "for all", x, "instances!"))
+                              tip_label_colors
+                            }
               )
-              
-              plot <- plot %<+% matching_dict
-              
-              plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), 
+      
+         # Remove lines with NA values
+         matching_dict <- matching_dict[complete.cases(matching_dict), ]
+         
+         plot <- plot %<+% matching_dict
+         plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), 
                                              color = ifelse(matching_flag == TRUE, color_l, NA) ),
                                          size = tip_label_size, show.legend = mappings_legend) +
                              scale_color_identity()
@@ -620,6 +619,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
              tiplabels = FALSE
               
              missing_species_color <- setdiff(unique(sapply(species_dict, function(entry) entry$species)), names(color))
+             
              if (length(missing_species_color) > 0) {
                warning(paste("Color mapping not found for the following species: ", paste(missing_species_color, collapse = ", ")))
              }
@@ -633,9 +633,9 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
               
              # Check for missing species in color dataframe
              missing_species_shape <- setdiff(unique(sapply(species_dict, function(entry) entry$species)), names(shape))
-              if (length(missing_species_shape) > 0) {
+             if (length(missing_species_shape) > 0) {
                 warning(paste("Shape mapping not found for the following species: ", paste(missing_species_shape, collapse = ", ")))
-              }
+             }
                
               tip_shapes_df <- data.frame(
                 label = tip_labels,
@@ -660,8 +660,6 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
                   species_colors = species_names,
                   s_color = color[match(sapply(species_dict, function(entry) entry$species), names(color))]
                   )
-                
-                print(tip_colors_df)
                 
                 plot <- plot %<+% tip_colors_df
                 
