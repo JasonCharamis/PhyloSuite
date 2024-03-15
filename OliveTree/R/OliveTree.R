@@ -299,12 +299,7 @@ group_descendants <- function(tree, ...) {
 #' @examples
 #' # Extract a subtree preserving branch lengths and bootstrap values
 #' tree <- read.tree("path/to/your/treefile.newick")
-#' subtree <- extract_subtree(tree, "species_A", "species_B", branch_length = TRUE)
-#' visualize_tree(subtree)
-#'
-#' # Extract a cladogram with equal branch lengths
-#' tree <- read.tree("path/to/your/treefile.newick")
-#' subtree <- extract_subtree(tree, "tip1", "tip")
+#' subtree <- extract_subtree(tree, "species_A", "species_B")
 #' visualize_tree(subtree)
 #'
 #' @seealso
@@ -556,7 +551,7 @@ visualize_tree <- function(tree,
   
   # If option for branch length is not TRUE, make branch lengths NULL
   if (!(branch_length == TRUE | branch_length == T)) {
-    print("Option branch length is deactivated. As a result, the subtree will be extracted as a cladogram with equal branch lengths.")
+    print("Option branch length is deactivated. As a result, the tree will be visualized as a cladogram with equal branch lengths.")
     tree_obj@phylo$edge.length <- NULL
   } 
   
