@@ -91,8 +91,35 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 }
 
 
+#' write_tree
+#' This function writes a tree in newick format, while preserving the bootstrap values.
+#' 
+#' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo', or a file.
+#' @param output Name of the output file. If no name, is provided it will use the tree object name with a '.nwk' suffix.
+#' 
+#' @return A ggplot object representing the phylogenetic tree with node IDs and optional highlighted tip labels.
+#' 
+#' @examples
+#' \dontrun{
+#' # Write a sample tree
+#' write_tree( tree = tree_obj, output = 'tree_obj.nwk' )
+#' 
+#' @export
 
-#' node_ids
+write_tree <- function ( tree, output = "output_tree.nwk") {
+  tree_obj <- .load_tree_object(tree)
+  
+  # Copy bootstrap values in the labels of the internal (non-Tip) nodes
+  phylo_data <- as.treedata(left_join(as_tibble(tree_obj@phylo), as_tibble(tree_obj@data)) %>%
+                              mutate(isTip = ifelse(!is.na(label), TRUE, FALSE)) %>% 
+                              mutate(label = ifelse(isTip == FALSE, as.character(support), label)) %>% 
+                              select(-support)
+                           )
+  
+  ape::write.tree(phy = phylo_data@phylo, output)
+}
+
+#' print_internal_nodes
 #' This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
 #' to highlight specific tip labels that match a user-provided pattern.
 #'
@@ -109,12 +136,12 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' tree <- read_tree("path/to/tree.nwk")
 #'
 #' # Print the tree with node IDs and print tip labels matching "taxon_A"
-#' node_ids(tree, color = "darkred", "taxon_A")
+#' print_internal_nodes(tree, color = "darkred", "taxon_A")
 #' }
 #' 
 #' @export
  
-node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, ...) {
+print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, ...) {
   tree_obj <- .load_tree_object(tree)
   
   # Create the base tree plot with node labels
@@ -136,7 +163,7 @@ node_ids <- function(tree, form = "circular", node_id_color = "darkred", tip_lab
       )
       
       plot <- plot %<+% matching_dict
-      plot <- plot + geom_tiplab2(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
+      plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
       return(plot)
   }
 }
@@ -180,8 +207,8 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 #' # Load a sample tree
 #' tree <- read_tree("path/to/tree.nwk")
 #'
-#' # Use node_ids to identify the nodes you want to flip, ideally with a pattern matching a leaf of interest.
-#' node_ids(tree)
+#' # Use print_internal_nodes to identify the nodes you want to flip, ideally with a pattern matching a leaf of interest.
+#' print_internal_nodes(tree)
 #'
 #' # Flip nodes 5 and 8 in the tree
 #' flipped_tree <- flip_node(tree, 5, 8)
@@ -191,7 +218,7 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 
 flip_nodes <- function(tree, node1, node2) {
   tree_obj <- .load_tree_object(tree)
-  return(as.phylo(ggtree::flip(ggtree(tree_obj), node1, node2)))
+  return( ggtree::flip(ggtree(tree_obj), node1, node2) )
 }
 
 #' group_descendants
@@ -469,13 +496,11 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
       }
     
    tree_obj <- as.treedata ( as_tibble(tree_obj) %>%
-               mutate ( bs_color = case_when ( support < 50 ~ "snow2",
-                                               support >= 50 & support < 75 ~ "grey",
-                                               support >= 75 ~ "black",
-                                               TRUE ~ NA  # Default case if none of the conditions are met
-                                              )
-                       )
-                )
+                             mutate (bs_color = case_when(support < 50 ~ "snow2",
+                                                          support >= 50 & support < 75 ~ "grey",
+                                                          support >= 75 ~ "black",
+                                                          TRUE ~ NA  # Default case if none of the conditions are met
+                                                         )))
       
    plot <- ggtree(tree_obj, layout = form)
   
@@ -516,7 +541,9 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
      # If you want to print some of the species labels as text, do not include them into the color and shape mapping vectors, and provide them as 'references'
    if (tiplabels == TRUE) { 
      if (is.null(pattern_id)) {
-         plot <- plot + geom_tiplab2(size = tip_label_size, color = ifelse(is.null(tip_label_colors), "black", tip_label_colors), show.legend = mappings_legend, align.tip.label = TRUE) # Here default size is 1, because it will print all tip labels
+         plot <- plot + geom_tiplab(size = tip_label_size, color = ifelse(is.null(tip_label_colors), "black", tip_label_colors), 
+                                     show.legend = mappings_legend, align.tip.label = TRUE)
+         
          print("Printing phylogenetic tree with all tip labels!")
        } else {
           if ( !is.null(tip_label_colors) ) {
@@ -550,8 +577,8 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
          matching_dict <- matching_dict[complete.cases(matching_dict), ]
          
          plot <- plot %<+% matching_dict
-         plot <- plot + geom_tiplab2(aes(label = ifelse(matching_flag == TRUE, label, NA), 
-                                             color = ifelse(matching_flag == TRUE, color_l, NA) ),
+         plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), 
+                                         color = ifelse(matching_flag == TRUE, color_l, NA) ),
                                          size = tip_label_size, show.legend = mappings_legend, align.tip.label = TRUE) +
                              scale_color_identity()
               
@@ -589,7 +616,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
                    
                    ref_dict <- do.call(rbind, ref_species)
                    plot_ref <- plot %<+% ref_dict 
-                   plot <- plot_ref + geom_tiplab2(aes(label = ifelse(reference_flag, label, "")), 
+                   plot <- plot_ref + geom_tiplab(aes(label = ifelse(reference_flag, label, "")), 
                                                    size = tip_label_size, color = "black", align.tip.label = TRUE)
                      
                    non_ref_species <- setdiff(tree_obj@phylo$tip.label, ref_species)
@@ -703,7 +730,7 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
    if (!is.null(clades)) {
        for (i in names(clades)) {
          plot <- plot + geom_cladelab(node = clades[i], label = i, align = TRUE, fill = 'black',
-                                      offset.text = labeldist, barsize = 0.9, offset.bar = bardist, fontsize = fontsize)
+                                      offset.text = labeldist, barsize = 0.9, offset.bar = bardist, clade_label_size = clade_label_size)
        }
    }
   
