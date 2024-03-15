@@ -18,29 +18,50 @@
 
 # Function to check if a package is installed, and if not, install it.
 # Function to install or load a package
-.load_packages <- function( tools ) {
-  tmp <- as.data.frame(installed.packages()) 
-  max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
-  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ]
 
-  for ( pkg in tools ) {
-    if ( pkg %in% tmp$Package ) {
-      suppressPackageStartupMessages( library (pkg, character.only = TRUE) )
+.load_packages <- function(tools) {
+  tmp <- as.data.frame(installed.packages()) 
+  max_version <- max(as.numeric(substr(tmp$Built,
+                                      1,
+                                      1)))
+  tmp <- tmp[as.numeric(substr(tmp$Built,
+                                1,
+                                1)) == max_version,
+             ]
+
+  for (pkg in tools) {
+    if (pkg %in% tmp$Package) {
+      suppressPackageStartupMessages(library(pkg,
+                                             character.only = TRUE))
     } else {
-         print(sprintf("%s %s", pkg, "is not installed. Installing it!"))
+      print(sprintf("%s %s",
+                    pkg,
+                    "is not installed. Installing it!"))
       
-         if ( pkg %in% BiocManager::available(pkg) ) {
-            BiocManager::install(pkg, dependencies = TRUE, update = TRUE)
-         } else {
-            install.packages(pkg, dependencies = TRUE, ask = FALSE)
+      if (pkg %in% BiocManager::available(pkg)) {
+        BiocManager::install(pkg,
+                             dependencies = TRUE,
+                             update = TRUE)
+      } else {
+        install.packages(pkg,
+                         dependencies = TRUE,
+                         ask = FALSE)
       }
     }
   }
 }
 
 # Load required packages or install them if necessary
-dependencies <- c( "optparse", "ape", "phytools", "treeio", "tidytree", 
-                   "TreeTools", "ggstar", "ggtree","dplyr", "plotly" )
+dependencies <- c( "optparse",
+	     	   "ape",
+		   "phytools",
+		   "treeio",
+		   "tidytree",
+                   "TreeTools",
+		   "ggstar",
+		   "ggtree",
+		   "dplyr",
+		   "plotly" )
 
 .load_packages(dependencies)
 
@@ -58,10 +79,10 @@ dependencies <- c( "optparse", "ape", "phytools", "treeio", "tidytree",
 # Function to read and preprocess a tree
 read_tree <- function(input_file, bootstrap_support = TRUE) {
   if (bootstrap_support == TRUE) {
-    t <- treeio::read.newick(input_file, node.label = 'support' )
+    t <- treeio::read.newick(input_file, node.label = 'support')
   } else {
-      t <- treeio::read.newick(input_file)
-  } 
+    t <- treeio::read.newick(input_file)
+  }
   
   return(t)
 }
@@ -71,21 +92,21 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' 
 #' @param tree An object representing the phylogenetic tree. Should be a newick or nexus file, or an object of class 'treedata' or 'phylo'.
  
-.load_tree_object <- function (tree) {
+.load_tree_object <- function(tree) {
   if (typeof(tree) == "character") {
     if (file.exists(tree)) {
       if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
         tree_obj <- read_tree(tree)
       } else {
-          stop ("Provided file is not a newick or nexus file.")
+        stop("Provided file is not a newick or nexus file.")
       }
-    } 
-  } else if (is(tree,"treedata")) {
-      tree_obj <- tree
-  } else if (is(tree,"phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
+    }
+  } else if (is(tree, "treedata")) {
+    tree_obj <- tree
+  } else if (is(tree, "phylo")) {
+    tree_obj <- treeio::as.treedata(tree)
   } else {
-      stop ("Provided file is not a treedata, a phylo or a tibble_df object.")
+    stop("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
   return(tree_obj)
 }
@@ -106,18 +127,31 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' 
 #' @export
 
-write_tree <- function ( tree, output = "output_tree.nwk") {
+write_tree <- function(tree, output = "output_tree.nwk") {
   tree_obj <- .load_tree_object(tree)
-  
+
   # Copy bootstrap values in the labels of the internal (non-Tip) nodes
-  phylo_data <- as.treedata(left_join(as_tibble(tree_obj@phylo), as_tibble(tree_obj@data)) %>%
-                              mutate(isTip = ifelse(!is.na(label), TRUE, FALSE)) %>% 
-                              mutate(label = ifelse(isTip == FALSE, as.character(support), label)) %>% 
-                              select(-support)
-                           )
-  
+  phylo_data <- as.treedata(
+    left_join(
+      as_tibble(tree_obj@phylo),
+      as_tibble(tree_obj@data)
+    ) %>%
+      mutate(
+        isTip = ifelse(!is.na(label), TRUE, FALSE)
+      ) %>%
+      mutate(
+        label = ifelse(
+          isTip == FALSE,
+          as.character(support),
+          label
+        )
+      ) %>%
+      select(-support)
+  )
+
   ape::write.tree(phy = phylo_data@phylo, output)
 }
+
 
 #' print_internal_nodes
 #' This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
@@ -143,28 +177,28 @@ write_tree <- function ( tree, output = "output_tree.nwk") {
  
 print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, ...) {
   tree_obj <- .load_tree_object(tree)
-  
+
   # Create the base tree plot with node labels
-  plot <- ggtree(tree_obj, layout = form) + 
-          geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
-  
+  plot <- ggtree(tree_obj, layout = form) +
+    geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
+
   references <- list(...)
-  
+
   if (length(references) == 0) {
     print("Only node IDs will be printed.")
     return(plot)
   } else {
-      reference <- as.character(unlist(references))
-      matching_labels <- tree_obj@phylo$tip.label[grepl(reference, tree_obj@phylo$tip.label)]
+    reference <- as.character(unlist(references))
+    matching_labels <- tree_obj@phylo$tip.label[grepl(reference, tree_obj@phylo$tip.label)]
 
-      matching_dict <- data.frame(
-        label = matching_labels,
-        matching_flag = TRUE
-      )
-      
-      plot <- plot %<+% matching_dict
-      plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
-      return(plot)
+    matching_dict <- data.frame(
+      label = matching_labels,
+      matching_flag = TRUE
+    )
+
+    plot <- plot %<+% matching_dict
+    plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
+    return(plot)
   }
 }
 
@@ -187,7 +221,7 @@ print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkr
 #'
 #' @export
 
-bootstrap_collapse <- function(tree, cutoff = 0.5) { 
+bootstrap_collapse <- function(tree, cutoff = 0.5) {
   tree_obj <- .load_tree_object(tree)
   return(as.polytomy(tree_obj, feature = 'support', fun = function(x) as.numeric(x) < cutoff))
 }
@@ -216,7 +250,7 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 #'
 #' @export
 
-flip_nodes <- function(tree, node1, node2) {
+flip_nodes <- function(tree, node1,  node2) {
   tree_obj <- .load_tree_object(tree)
   return( ggtree::flip(ggtree(tree_obj), node1, node2) )
 }
@@ -245,6 +279,7 @@ flip_nodes <- function(tree, node1, node2) {
 #' @export
 
 # Function to group all descendant branches of node(s)
+
 group_descendants <- function(tree, ...) {
   tree_obj <- .load_tree_object(tree)
   nodes <- list(...)
@@ -284,60 +319,70 @@ group_descendants <- function(tree, ...) {
 #' @export
 
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
+
 extract_subtree <- function(tree, tip1, tip2) {
   tree_obj <- .load_tree_object(tree)
-  
-  if ( "support" %in% colnames(tree_obj@data) ) { 
-    
+
+  if ("support" %in% colnames(tree_obj@data)) {
     # Append bootstrap values in the label section, in the nodes which are NOT tips
     # The bootstrap values will be kept there and transferred along with the labels in the new node numbering of the subtree
-
-    phylo_data <- as.treedata(left_join(as_tibble(tree_obj@phylo), as_tibble(tree_obj@data)) %>%
-                              mutate(isTip = ifelse(!is.na(label), TRUE, FALSE)) %>% 
-                              mutate(label = ifelse(isTip == FALSE, as.character(support), label)) %>% 
-                              select(-support)
-                             )
-    
+    phylo_data <- as.treedata(
+      left_join(
+        as_tibble(tree_obj@phylo),
+        as_tibble(tree_obj@data)
+      ) %>%
+        mutate(
+          isTip = ifelse(!is.na(label), TRUE, FALSE)
+        ) %>%
+        mutate(
+          label = ifelse(isTip == FALSE, as.character(support), label)
+        ) %>%
+        select(-support)
+    )
   } else {
-      phylo_data <- tree_obj
+    phylo_data <- tree_obj
   }
-    
+
   t <- Preorder(phylo_data@phylo)
-  
+
   # Extract subtree based on anchor tip labels and/or patterns
   tip1m <- t$tip.label[grepl(tip1, t$tip.label)]
   tip2m <- t$tip.label[grepl(tip2, t$tip.label)]
 
   if (any(sapply(list(tip1m, tip2m), function(x) is.null(x)))) {
     stop("Provided tip labels are NULL or were not found among tree tip labels.")
-  } else if (any(sapply(list(tip1m, tip2m), function(x) length(x) > 1 ))) {
+  } else if (any(sapply(list(tip1m, tip2m), function(x) length(x) > 1))) {
     stop("Provided tip names are not unique.")
   }
-    
+
   subtree <- ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1m, tip2m)))
-  
-  if ( !( "support" %in% colnames(tree_obj@data)) ) { 
-    return ( subtree )
+
+  if (!("support" %in% colnames(tree_obj@data))) {
+    return(subtree)
   } else {
-      # If node is NOT tip, add the labels in the bs_support column and make the labels NA - mapping according to new node numbering 
-      subtree_f <- as.treedata(subtree) %>%
-                   mutate(bs_support = ifelse(isTip == FALSE, label, NA)) %>%
-                   mutate(label = ifelse(isTip == FALSE, NA, label))
-      
-      # To create an object compatible with visualize_tree, initialize the 'node' and 'support' columns in the data slice of the treedata class
-      subtree_f@data <- tibble(
-          node = rep(NA, length = length(subtree_f@extraInfo$node)),
-          support = rep(NA, length = length(subtree_f@extraInfo$bs_support))
+    # If node is NOT tip, add the labels in the bs_support column and make the labels NA - mapping according to new node numbering
+    subtree_f <- as.treedata(subtree) %>%
+      mutate(
+        bs_support = ifelse(isTip == FALSE, label, NA)
+      ) %>%
+      mutate(
+        label = ifelse(isTip == FALSE, NA, label)
       )
-      
-      # ... and the add the node number and bs_support values
-      subtree_f@data <- tibble(
-          node = subtree_f@extraInfo$node,
-          support = as.numeric(subtree_f@extraInfo$bs_support)
-      ) 
-      return ( subtree_f )
+
+    # To create an object compatible with visualize_tree, initialize the 'node' and 'support' columns in the data slice of the treedata class
+    subtree_f@data <- tibble(
+      node = rep(NA, length = length(subtree_f@extraInfo$node)),
+      support = rep(NA, length = length(subtree_f@extraInfo$bs_support))
+    )
+
+    # ... and then add the node number and bs_support values
+    subtree_f@data <- tibble(
+      node = subtree_f@extraInfo$node,
+      support = as.numeric(subtree_f@extraInfo$bs_support)
+    )
+    return(subtree_f)
   }
-} 
+}
 
 #==================================== TREE VISUALIZATION FUNCTIONS ====================================#
 
@@ -380,10 +425,11 @@ extract_subtree <- function(tree, tip1, tip2) {
 # Function to highlight nodes on a tree
 highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circular", name = NULL, ...) {
   tree_obj <- .load_tree_object(tree)
-  
-  plot <- ggtree(tree_obj, layout = layout) + 
-          geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) + 
-          scale_starshape_identity() + scale_fill_identity()
+
+  plot <- ggtree(tree_obj, layout = layout) +
+    geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) +
+    scale_starshape_identity() + 
+    scale_fill_identity()
 
   # Check if highlight_nodes is a list or a vector
   if (is.vector(highlight_nodes)) {
@@ -400,12 +446,20 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
       })
     )
   } else {
-      stop("highlight_nodes should a vector.")
+    stop("highlight_nodes should a vector.")
   }
 
   # Highlight the nodes
-  plot <- plot + geom_hilight(data = highlight, aes(node = Label, fill = Color), 
-                              color = "black", alpha = 0.3, extend = 0.10, linetype = 1, linewidth = 0.9, show.legend = TRUE)
+  plot <- plot + geom_hilight(
+    data = highlight,
+    aes(node = Label, fill = Color),
+    color = "black",
+    alpha = 0.3,
+    extend = 0.10,
+    linetype = 1,
+    linewidth = 0.9,
+    show.legend = TRUE
+  )
   return(plot)
 }
 
@@ -468,15 +522,36 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' @importFrom plotly ggplotly
 #'
 #' @export 
+=
 
-visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, pattern_id = NULL,
-                           color = NULL, shape = NULL, mappings_legend = FALSE, tip_shape_size = 3, references = NULL,
-                           tip_label_size = 2, tip_label_colors = NULL, 
-                           bootstrap_numbers = TRUE, bootstrap_number_nudge_x = 1, bootstrap_number_nudge_y = 3.2, node_label_size = 3, 
-                           bootstrap_circles = FALSE, bootstrap_legend = FALSE, bootstrap_circle_size = 1.7,
-                           branch_length = TRUE, clades = NULL, labeldist = 1, bardist = 1, clade_label_size = 3,
-                           save = TRUE, output = NULL, interactive = FALSE) {
-  
+visualize_tree <- function(tree,
+			   form = "rectangular",
+			   tiplabels = FALSE,
+			   pattern_id = NULL,
+                           color = NULL,
+			   shape = NULL,
+			   mappings_legend = FALSE,
+			   tip_shape_size = 3,
+			   references = NULL,
+                           tip_label_size = 2,
+			   tip_label_colors = NULL, 
+                           bootstrap_numbers = FALSE,
+			   bootstrap_number_nudge_x = 0,
+			   bootstrap_number_nudge_y = 0.2,
+			   node_label_size = 3, 
+                           bootstrap_circles = FALSE,
+			   bootstrap_legend = FALSE,
+			   bootstrap_circle_size = 1.7,
+                           branch_length = TRUE,
+			   clades = NULL,
+			   labeldist = 1,
+			   bardist = 1,
+			   clade_label_size = 3,
+                           save = TRUE,
+			   output = NULL,
+			   interactive = FALSE) {
+
+
   tree_obj <- .load_tree_object(tree)
   
   # If option for branch length is not TRUE, make branch lengths NULL
@@ -769,5 +844,3 @@ visualize_tree <- function(tree, form = "rectangular", tiplabels = FALSE, patter
     }
   }
 }
-
-
