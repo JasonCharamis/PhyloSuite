@@ -517,7 +517,7 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' @importFrom plotly ggplotly
 #'
 #' @export 
-=
+
 
 visualize_tree <- function(tree,
 			   form = "rectangular",
