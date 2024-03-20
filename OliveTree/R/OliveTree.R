@@ -778,13 +778,6 @@ visualize_tree <- function(tree = tree,
               }
             } else if ( !is.null(color) && is.null(shape)) {
               
-              sapply(references, function(reference) { 
-                print(reference)
-                if ( any(grepl(reference, names(color))) ) {
-                  cat("Reference", reference, "was found among the color names, but it will be printed as a tip label!\n")
-                }
-              }) 
-              
                 tip_colors_df <- data.frame(
                   label = tip_labels,
                   taxon_colors = taxon_names,
