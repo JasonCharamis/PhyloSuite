@@ -421,10 +421,10 @@ extract_subtree <- function(tree, tip1, tip2) {
 #' @export
 
 # Function to highlight nodes on a tree
-highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circular", name = NULL, ...) {
+highlight_tree <- function(tree, form = "circular", highlight_nodes, colors = NULL, name = NULL, ...) {
   tree_obj <- .load_tree_object(tree)
 
-  plot <- ggtree(tree_obj, layout = layout) +
+  plot <- ggtree(tree_obj, layout = form) +
     geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) +
     scale_starshape_identity() + 
     scale_fill_identity()
@@ -710,7 +710,7 @@ visualize_tree <- function(tree = tree,
                 } else {
                   print ("Provided 'references' pattern was not found.")
                   
-                  taxon_dict <- lapply(tree_obj@phylo$tip.label, function(i) {
+                  taxon_dict <- lapply(tree_obj@phylo$tip.label, function(label) {
                     list(tip_label = label, taxon = sub("_.*", "", label))
                   })
           }
