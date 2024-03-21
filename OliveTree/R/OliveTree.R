@@ -793,8 +793,7 @@ visualize_tree <- function(tree = tree,
                 }
                 
             } else if ( is.null(color) && !is.null(shape)) {
-                
-                tiplabels = FALSE
+            
               
                 tip_shapes_df <- data.frame(
                   label = tip_labels,
