@@ -52,16 +52,19 @@
 }
 
 # Load required packages or install them if necessary
-dependencies <- c( "optparse",
-	     	   "ape",
-		   "phytools",
-		   "treeio",
-		   "tidytree",
-                   "TreeTools",
-		   "ggstar",
-		   "ggtree",
-		   "dplyr",
-		   "plotly" )
+dependencies <- c(
+  "optparse",
+  "ape",
+  "phytools",
+  "treeio",
+  "tidytree",
+  "TreeTools",
+  "ggstar",
+  "ggtree",
+  "dplyr",
+  "plotly"
+)
+
 
 .load_packages(dependencies)
 
@@ -459,12 +462,6 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 }
 
 
-.adjust_tree_width <- function (tree, limits = c(300, 600, 900)) {
-  
-  tree_obj <- .load_tree_object(tree)
- 
-}
-
 #' visualize_tree
 #' Function to visualize a tree with a wide variety of options and customizable features
 #'
@@ -729,12 +726,10 @@ visualize_tree <- function(tree = tree,
              
              sapply(references, function(reference) { 
                if ( any(grepl(reference, names(color))) || any(grepl (reference, names(shape))) ) {
-                 cat(reference, "was found among the colors and/or shapes names, but it will be printed as a tip label!\n")
+                 cat(reference, "was found among the colors and/or shapes names, but it will be printed as a 'reference' tip label!\n")
                }
              })
              
-             tiplabels = FALSE
-            
              missing_taxon_color <- setdiff(unique(sapply(taxon_dict, function(entry) entry$taxon)), names(color))
              
              if (length(missing_taxon_color) > 0) {
