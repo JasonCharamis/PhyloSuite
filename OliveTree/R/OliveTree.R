@@ -589,7 +589,7 @@ visualize_tree <- function(tree = tree,
      } 
    } 
    
-   # Manipulate bootstrap values
+   # Print bootstrap values either as numbers on top of branches or as circles in the parent nodes
    if ( bootstrap_numbers == TRUE && bootstrap_circles != TRUE ) {
     if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
       # bootstrap_number_nudge_y controls the relative height of the number on top of branch - use LARGER values as the SIZE of the tree INCREASES
@@ -623,7 +623,7 @@ visualize_tree <- function(tree = tree,
        stop("The 'references' option can be used only if tip mappings are provided. If you want to print tip labels with a specific pattern use the tiplabels = TRUE and pattern = 'desired pattern' options")
      }
      
-     # If you want to print some of the taxon labels as text, do not include them into the color and shape mapping vectors, and provide them as 'references'
+   # If you want to print some of the taxon labels as text, do not include them into the color and shape mapping vectors, and provide them as 'references'
    if (tiplabels == TRUE) { 
      if (is.null(pattern_id)) {
          plot <- plot + geom_tiplab(size = tip_label_size, color = ifelse(is.null(tip_label_colors), "black", tip_label_colors), 
@@ -658,8 +658,7 @@ visualize_tree <- function(tree = tree,
                           }
               )
       
-         # Remove lines with NA values
-         matching_dict <- matching_dict[complete.cases(matching_dict), ]
+         matching_dict <- matching_dict[complete.cases(matching_dict), ] # Remove lines with NA values
          
          plot <- plot %<+% matching_dict
          plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), 
@@ -755,7 +754,7 @@ visualize_tree <- function(tree = tree,
                 s_shape = shape[match(sapply(taxon_dict, function(entry) entry$taxon), names(shape))]
               )
               
-              # Join data frames to create a unique mapping tibble
+              # Integrate color and shape mappings into the ggtree object
               plot <- plot %<+% tip_colors_df 
               plot <- plot %<+% tip_shapes_df  
   
@@ -789,13 +788,10 @@ visualize_tree <- function(tree = tree,
                     plot <- plot + geom_star(mapping = aes( subset = isTip & !is.na(s_color),
                                                             fill = ifelse(!is.na(taxon_colors), s_color, NA)),
                                                             show.legend = mappings_legend, starshape = "circle", size = tip_shape_size) +
-                                     scale_fill_identity()
+                                   scale_fill_identity()
                 }
                 
-            } else if ( is.null(color) && !is.null(shape)) {
-                
-                tiplabels = FALSE
-              
+            } else if ( is.null(color) && !is.null(shape)) {             
                 tip_shapes_df <- data.frame(
                   label = tip_labels,
                   taxon_shapes = taxon_names,
@@ -804,22 +800,23 @@ visualize_tree <- function(tree = tree,
                 
                 plot <- plot %<+% tip_shapes_df
                 
-                plot <- plot + geom_star(mapping = aes( subset = isTip & !is.na(s_shape),
-                                                        starshape = ifelse(!is.na(taxon_shapes), s_shape, NA)),
-                                         fill = "black", size = tip_shape_size, show.legend = mappings_legend) +
-                               scale_starshape_identity()
-                
                 if (tiplabels == TRUE) {
                   plot <- plot + geom_tiplab(mapping = aes( subset = isTip & !is.na(s_color), color = ifelse(!is.na(s_color), s_color, NA)),
                                              show.legend = FALSE, size = tip_shape_size, align.tip.label = TRUE) +
                     scale_fill_identity()
-                } 
+                } else {
+                  plot <- plot + geom_star(mapping = aes( subset = isTip & !is.na(s_shape),
+                                                        starshape = ifelse(!is.na(taxon_shapes), s_shape, NA)),
+                                         fill = "black", size = tip_shape_size, show.legend = mappings_legend) +
+                                 scale_starshape_identity()
+                }
             }
          } else {
             stop("Provided tip mappings were not found.")
         }
       }
     
+   # Option to denote specific clades in tree and include associated labels
    if (!is.null(clades)) {
        for (i in names(clades)) {
          plot <- plot + geom_cladelab(node = clades[i], label = i, align = TRUE, fill = 'black',
