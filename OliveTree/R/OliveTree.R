@@ -791,7 +791,13 @@ visualize_tree <- function(tree = tree,
                                    scale_fill_identity()
                 }
                 
+<<<<<<< HEAD
             } else if ( is.null(color) && !is.null(shape)) {             
+=======
+            } else if ( is.null(color) && !is.null(shape)) {
+            
+              
+>>>>>>> bbeea00e4a26d221e018e921ef4617afdf6e25e5
                 tip_shapes_df <- data.frame(
                   label = tip_labels,
                   taxon_shapes = taxon_names,
