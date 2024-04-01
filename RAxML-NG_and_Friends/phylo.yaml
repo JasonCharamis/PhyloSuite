@@ -1,0 +1,21 @@
+name: phylo
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - mafft
+    - trimal
+    - pypythia
+    - modeltest-ng
+    - raxml-ng
+<<<<<<< HEAD:RAxML-NG-and-Friends/workflow/envs/phylo.yaml
+    - ete3
+    - seaborn
+=======
+
+
+script:
+  - mkdir -p /etc/conda/activate.d
+  - echo 'export PATH=scripts/:$PATH' > /etc/conda/activate.d/your_environment.sh
+  - chmod +x /etc/conda/activate.d/your_environment.sh
+>>>>>>> 010e0e848549bc74f99e2b4a74ab2e316bdd755a:workflow/envs/phylo.yaml

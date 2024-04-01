@@ -1,0 +1,113 @@
+import os
+import re
+import subprocess
+
+
+# Get the absolute workflow path
+def get_workflow_path(start_dir="~"):
+    start_dir_user = os.path.expanduser(start_dir)
+    workflow_path = subprocess.run(['find', start_dir_user, '-type', 'd', '-name', 'workflow', '-path', '*/RAxML-NG-and-Friends/*', '-print', '-quit'], capture_output=True, text=True)
+
+    if not workflow_path.stdout.strip():
+        return None
+
+    workflow_dir = re.sub(r"/workflow.*", "", workflow_path.stdout.strip())
+    return os.path.abspath(workflow_dir)
+
+workflow_dir = get_workflow_path(start_dir="~/bin/")
+configfile: f"{workflow_dir}/config/config.yaml"
+scripts = f"{workflow_dir}/workflow/scripts"
+
+# Define raxml_ng_path globally because it's also needed by Pythia
+raxml_ng_path = subprocess.run(["which", config['raxml_ng']], capture_output=True, text=True).stdout.strip('\n')
+
+# Snakemake Pipeline
+fasta_files = [f for f in os.listdir(".") if f.endswith((".fasta", ".fa", ".faa"))]
+
+rule all:
+    input:
+        "all_genes.trimmed.aln.phy.raxml.support.tree",
+        "all_genes.trimmed.aln.phy.raxml.support.tree.svg"
+
+rule concatenate:
+    input: seqs = expand("{fasta_file}", fasta_file=fasta_files)
+    output: all_fasta = "all_genes.fasta"
+    shell: "cat {input.seqs} > {output.all_fasta}"
+
+rule mafft:
+    input: all_fasta = "all_genes.fasta"
+    output: aln = "all_genes.aln"
+    conda: "envs/phylo.yaml"
+    shell: "mafft --auto {input.all_fasta} > {output.aln}"
+
+rule trimal:
+    input: aln = "all_genes.aln"
+    output: trm = "all_genes.aln.trimmed"
+    params: thr = config['trimal_threshold']
+    conda: "envs/phylo.yaml"
+    shell: "trimal -in {input.aln} -out {output.trm} -fasta -gt {params.thr}"
+
+rule convert:
+    input: trm = "all_genes.aln.trimmed"
+    output: phy = "all_genes.aln.trimmed.phy"
+    message: "Converting trimmed alignment to phy"
+    shell: "python3 {scripts}/ETElib.py --alignment {input.trm}"
+
+rule pythia:
+    input: aln = "all_genes.aln.trimmed"
+    output: "all_genes.aln.pythia.out"
+    conda: f"envs/phylo.yaml"
+    shell: "pythia --msa {input.aln} -r {raxml_ng_path} --removeDuplicates -o {output}"
+
+rule model_test:
+    input: aln = "all_genes.aln.trimmed.phy"
+    output: "all_genes.trimmed.aln.phy.raxml.bestModel"
+    threads: config['modeltest_threads']
+    params: type = config['type'],
+            run_model_test_ng = config['run_model_test_ng'],
+            substitution_model = config['substitution_model']
+    conda: "envs/phylo.yaml"
+    log: "logs/model_test.log"
+    message: "Running ModelTest-NG!"
+    shell:
+        """
+        if {params.run_model_test_ng}; then 
+            modeltest-ng -i {input.aln} -d {params.type} -t ml -c {threads} -T raxml &> {log} 
+        else 
+            echo "{params.substitution_model}" > {output} 
+        fi
+        """
+        
+rule raxml:
+    input:
+        aln = "all_genes.aln.trimmed.phy",
+        model_file = "all_genes.trimmed.aln.phy.raxml.bestModel"
+    output: bestTree="all_genes.trimmed.aln.phy.raxml.support"
+    threads: config['raxmlng_threads']
+    params:
+        rtn = config['random_tree_number'],
+        ptn = config['parsimony_tree_number'],       
+        outgroup = config['outgroup']
+    run:
+        model_name = str(subprocess.run(["cat", f"{input.model_file}"], capture_output=True).stdout.decode().rstrip('\n'))
+
+        if len(params.outgroup) > 0:
+            shell (""" {raxml_ng_path} --all --msa {input.aln} --model {model_name} --tree rand{{{params.rtn}}}, pars{{{params.ptn}}} --threads {threads} --workers auto --outgroup {params.outgroup} """)
+        else:
+            shell (""" {raxml_ng_path} --all --msa {input.aln} --model {model_name} --tree rand{{{params.rtn}}}, pars{{{params.ptn}}} --threads {threads} --workers auto """)
+        
+rule midpoint_root:
+    input: "all_genes.trimmed.aln.phy.raxml.support"
+    output: "all_genes.trimmed.aln.phy.raxml.support.tree"
+    params: outgroup = config['outgroup']
+    run:
+       if length({params.outgroup}) > 0:
+           shell (""" cp all_genes.trimmed.aln.phy.raxml.support all_genes.trimmed.aln.phy.raxml.support.tree """)
+       else:
+           shell (""" python3 {scripts}/ETElib.py --tree all_genes.trimmed.aln.phy.raxml.support --midpoint """)
+
+rule visualize_tree:
+    input: "all_genes.trimmed.aln.phy.raxml.support.tree"
+    output: "all_genes.trimmed.aln.phy.raxml.support.tree.svg"
+    shell: """ python3 {scripts}/ETElib.py --tree all_genes.trimmed.aln.phy.raxml.support.tree --visualize """ 
+
