@@ -26,8 +26,8 @@ fasta_files = [f for f in os.listdir(".") if f.endswith((".fasta", ".fa", ".faa"
 
 rule all:
     input:
-        "all_genes.trimmed.aln.phy.raxml.support.tree",
-        "all_genes.trimmed.aln.phy.raxml.support.tree.svg"
+        "all_genes.aln.trimmed.phy.raxml.support.tree",
+        "all_genes.aln.trimmed.phy.raxml.support.tree.svg"
 
 rule concatenate:
     input: seqs = expand("{fasta_file}", fasta_file=fasta_files)
@@ -61,7 +61,7 @@ rule pythia:
 
 rule model_test:
     input: aln = "all_genes.aln.trimmed.phy"
-    output: "all_genes.trimmed.aln.phy.raxml.bestModel"
+    output: "all_genes.aln.trimmed.phy.raxml.bestModel"
     threads: config['modeltest_threads']
     params: type = config['type'],
             run_model_test_ng = config['run_model_test_ng'],
@@ -81,8 +81,8 @@ rule model_test:
 rule raxml:
     input:
         aln = "all_genes.aln.trimmed.phy",
-        model_file = "all_genes.trimmed.aln.phy.raxml.bestModel"
-    output: bestTree="all_genes.trimmed.aln.phy.raxml.support"
+        model_file = "all_genes.aln.trimmed.phy.raxml.bestModel"
+    output: bestTree="all_genes.aln.trimmed.phy.raxml.support"
     threads: config['raxmlng_threads']
     params:
         rtn = config['random_tree_number'],
@@ -97,17 +97,17 @@ rule raxml:
             shell (""" {raxml_ng_path} --all --msa {input.aln} --model {model_name} --tree rand{{{params.rtn}}}, pars{{{params.ptn}}} --threads {threads} --workers auto """)
         
 rule midpoint_root:
-    input: "all_genes.trimmed.aln.phy.raxml.support"
-    output: "all_genes.trimmed.aln.phy.raxml.support.tree"
+    input: "all_genes.aln.trimmed.phy.raxml.support"
+    output: "all_genes.aln.trimmed.phy.raxml.support.tree"
     params: outgroup = config['outgroup']
     run:
-       if length({params.outgroup}) > 0:
-           shell (""" cp all_genes.trimmed.aln.phy.raxml.support all_genes.trimmed.aln.phy.raxml.support.tree """)
+       if len({params.outgroup}) > 0:
+           shell (""" cp all_genes.aln.trimmed.phy.raxml.support all_genes.aln.trimmed.phy.raxml.support.tree """)
        else:
-           shell (""" python3 {scripts}/ETElib.py --tree all_genes.trimmed.aln.phy.raxml.support --midpoint """)
+           shell (""" python3 {scripts}/ETElib.py --tree all_genes.aln.trimmed.phy.raxml.support --midpoint """)
 
 rule visualize_tree:
-    input: "all_genes.trimmed.aln.phy.raxml.support.tree"
-    output: "all_genes.trimmed.aln.phy.raxml.support.tree.svg"
-    shell: """ python3 {scripts}/ETElib.py --tree all_genes.trimmed.aln.phy.raxml.support.tree --visualize """ 
+    input: tree = "all_genes.aln.trimmed.phy.raxml.support.tree"
+    output: "all_genes.aln.trimmed.phy.raxml.support.tree.svg"
+    shell: """ python3 {scripts}/ETElib.py --tree {input.tree} --visualize """ 
 
