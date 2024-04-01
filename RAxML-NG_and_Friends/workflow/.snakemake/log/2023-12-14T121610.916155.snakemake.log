@@ -1,3 +1,0 @@
-KeyError in file /home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile, line 32:
-'trimal_threshold'
-  File "/home/jason/bin/RAxML-NG-and-Friends/workflow/Snakefile", line 32, in <module>
