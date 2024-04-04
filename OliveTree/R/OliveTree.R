@@ -175,30 +175,30 @@ write_tree <- function(tree, output = "output_tree.nwk") {
 #' 
 #' @export
  
-print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, ...) {
+print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, references = NULL) {
   tree_obj <- .load_tree_object(tree)
 
   # Create the base tree plot with node labels
   plot <- ggtree(tree_obj, layout = form) +
     geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
 
-  references <- list(...)
-
-  if (length(references) == 0) {
+  if ( is.null(references) ) {
     print("Only node IDs will be printed.")
     return(plot)
   } else {
-    reference <- as.character(unlist(references))
-    matching_labels <- tree_obj@phylo$tip.label[grepl(reference, tree_obj@phylo$tip.label)]
+    
+      matching_labels <- unlist(sapply(references, function(reference) {
+        grep(reference, tree_obj@phylo$tip.label, value = TRUE, fixed = TRUE)
+      }))
+      
+      matching_dict <- data.frame(
+        label = matching_labels,
+        matching_flag = TRUE
+      )
 
-    matching_dict <- data.frame(
-      label = matching_labels,
-      matching_flag = TRUE
-    )
-
-    plot <- plot %<+% matching_dict
-    plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag, label, ""), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
-    return(plot)
+      plot <- plot %<+% matching_dict
+      plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
+      return(plot)
   }
 }
 
@@ -224,35 +224,6 @@ print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkr
 bootstrap_collapse <- function(tree, cutoff = 0.5) {
   tree_obj <- .load_tree_object(tree)
   return(as.polytomy(tree_obj, feature = 'support', fun = function(x) as.numeric(x) < cutoff))
-}
-
-#' flip_nodes
-#'
-#' Flip nodes on a phylogenetic tree based on the specified descendant nodes. It can flip internal nodes or leaves, if the node is terminal.
-#'
-#' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
-#' @param node1 The first node for flipping.
-#' @param node2 The second node for flipping.
-#'
-#' @return A 'phylo' object with flipped nodes.
-#'
-#' @examples
-#' \dontrun{
-#' # Load a sample tree
-#' tree <- read_tree("path/to/tree.nwk")
-#'
-#' # Use print_internal_nodes to identify the nodes you want to flip, ideally with a pattern matching a leaf of interest.
-#' print_internal_nodes(tree)
-#'
-#' # Flip nodes 5 and 8 in the tree
-#' flipped_tree <- flip_node(tree, 5, 8)
-#' }
-#'
-#' @export
-
-flip_nodes <- function(tree, node1,  node2) {
-  tree_obj <- .load_tree_object(tree)
-  return( ggtree::flip(ggtree(tree_obj), node1, node2) )
 }
 
 #' group_descendants
@@ -522,32 +493,34 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' @importFrom plotly ggplotly
 #'
 #' @export 
-=
+
 
 visualize_tree <- function(tree,
 			   form = "rectangular",
+			   flip_nodes = FALSE,
+			   node1, node2 = NULL,
 			   tiplabels = FALSE,
 			   pattern_id = NULL,
-                           color = NULL,
+			   color = NULL,
 			   shape = NULL,
 			   mappings_legend = FALSE,
 			   tip_shape_size = 3,
 			   references = NULL,
-                           tip_label_size = 2,
+			   tip_label_size = 2,
 			   tip_label_colors = NULL, 
-                           bootstrap_numbers = FALSE,
+			   bootstrap_numbers = FALSE,
 			   bootstrap_number_nudge_x = 0,
 			   bootstrap_number_nudge_y = 0.2,
 			   node_label_size = 3, 
-                           bootstrap_circles = FALSE,
+			   bootstrap_circles = FALSE,
 			   bootstrap_legend = FALSE,
 			   bootstrap_circle_size = 1.7,
-                           branch_length = TRUE,
+			   branch_length = TRUE,
 			   clades = NULL,
 			   labeldist = 1,
 			   bardist = 1,
 			   clade_label_size = 3,
-                           save = TRUE,
+			   save = TRUE,
 			   output = NULL,
 			   interactive = FALSE) {
 
@@ -577,7 +550,15 @@ visualize_tree <- function(tree,
                                                           TRUE ~ NA  # Default case if none of the conditions are met
                                                          )))
       
-   plot <- ggtree(tree_obj, layout = form)
+   if ( flip_nodes == TRUE ) {
+     if ( !is.null(node1) || !is.null(node2) ) {
+      plot <- ggtree::flip( ggtree(tree_obj, layout = form), node1, node2 )
+     } else {
+        stop ("Please provide node IDs to flip. Find node IDs of interest using the print_internal_nodes( tree, references = c(taxon_pattern1, taxon_pattern1) ) function.")
+     }
+   } else {
+      plot <- ggtree(tree_obj, layout = form)
+   }
   
       # Manipulate bootstrap values
       if ( bootstrap_numbers == TRUE && bootstrap_circles != TRUE ) {
