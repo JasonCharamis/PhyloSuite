@@ -21,31 +21,19 @@
 
 .load_packages <- function(tools) {
   tmp <- as.data.frame(installed.packages()) 
-  max_version <- max(as.numeric(substr(tmp$Built,
-                                      1,
-                                      1)))
-  tmp <- tmp[as.numeric(substr(tmp$Built,
-                                1,
-                                1)) == max_version,
-             ]
+  max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
+  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version,]
 
   for (pkg in tools) {
     if (pkg %in% tmp$Package) {
-      suppressPackageStartupMessages(library(pkg,
-                                             character.only = TRUE))
+      suppressPackageStartupMessages(library(pkg, character.only = TRUE))
     } else {
-      print(sprintf("%s %s",
-                    pkg,
-                    "is not installed. Installing it!"))
+      print(sprintf("%s %s", pkg, "is not installed. Installing it!"))
       
       if (pkg %in% BiocManager::available(pkg)) {
-        BiocManager::install(pkg,
-                             dependencies = TRUE,
-                             update = TRUE)
+        BiocManager::install(pkg, dependencies = TRUE, update = TRUE)
       } else {
-        install.packages(pkg,
-                         dependencies = TRUE,
-                         ask = FALSE)
+        install.packages(pkg, dependencies = TRUE, ask = FALSE)
       }
     }
   }
@@ -53,15 +41,15 @@
 
 # Load required packages or install them if necessary
 dependencies <- c( "optparse",
-	     	   "ape",
-		   "phytools",
-		   "treeio",
-		   "tidytree",
-                   "TreeTools",
-		   "ggstar",
-		   "ggtree",
-		   "dplyr",
-		   "plotly" )
+            	     "ape",
+            		   "phytools",
+            		   "treeio",
+            		   "tidytree",
+            		   "TreeTools",
+            		   "ggstar",
+            		   "ggtree",
+            		   "dplyr",
+            		   "plotly" )
 
 .load_packages(dependencies)
 
@@ -96,17 +84,17 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
   if (typeof(tree) == "character") {
     if (file.exists(tree)) {
       if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-        tree_obj <- read_tree(tree)
+          tree_obj <- read_tree(tree)
       } else {
-        stop("Provided file is not a newick or nexus file.")
+          stop("Provided file is not a newick or nexus file.")
       }
     }
   } else if (is(tree, "treedata")) {
-    tree_obj <- tree
+     tree_obj <- tree
   } else if (is(tree, "phylo")) {
-    tree_obj <- treeio::as.treedata(tree)
+      tree_obj <- treeio::as.treedata(tree)
   } else {
-    stop("Provided file is not a treedata, a phylo or a tibble_df object.")
+      stop("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
   return(tree_obj)
 }
