@@ -80,7 +80,12 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
 #' 
 #' @param tree An object representing the phylogenetic tree. Should be a newick or nexus file, or an object of class 'treedata' or 'phylo'.
  
-.load_tree_object <- function(tree) {
+.load_tree_object <- function(tree = NULL) {
+  
+  if ( is.null(tree) ) {
+    tree <- file.choose()
+  } 
+  
   if (typeof(tree) == "character") {
     if (file.exists(tree)) {
       if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
@@ -96,7 +101,8 @@ read_tree <- function(input_file, bootstrap_support = TRUE) {
   } else {
       stop("Provided file is not a treedata, a phylo or a tibble_df object.")
   }
-  return(tree_obj)
+  
+return(tree_obj)
 }
 
 
@@ -483,7 +489,7 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, layout = "circu
 #' @export 
 
 
-visualize_tree <- function(tree,
+visualize_tree <- function(tree = NULL,
 			   form = "rectangular",
 			   flip_nodes = FALSE,
 			   node1, node2 = NULL,
@@ -509,11 +515,11 @@ visualize_tree <- function(tree,
 			   bardist = 1,
 			   clade_label_size = 3,
 			   save = TRUE,
-			   output = NULL,
-			   interactive = FALSE) {
+			   output = NULL
+			   ) {
 
-
-  tree_obj <- .load_tree_object(tree)
+ 
+  tree_obj <- .load_tree_object( tree )
   
   # If option for branch length is not TRUE, make branch lengths NULL
   if (!(branch_length == TRUE | branch_length == T)) {
@@ -805,11 +811,6 @@ visualize_tree <- function(tree,
     } else {
         print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
     }
-    
-    if (interactive == FALSE) {
-        return (plot)
-    } else {
-        return (plotly::ggplotly(plot))
-    }
+    return(plot)
   }
 }
