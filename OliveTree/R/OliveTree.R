@@ -811,6 +811,7 @@ visualize_tree <- function(tree = NULL,
     } else {
         print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
     }
-    return(plot)
+     
+  return(plot)
   }
 }
