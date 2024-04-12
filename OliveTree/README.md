@@ -1,5 +1,5 @@
 # OliveTree
-Library of functions for efficient tree manipulation and beautiful visualization in R, based on ggtree, treeio, ape and phytools.
+R package for efficient tree manipulation and beautiful visualization based on ggtree, treeio and phytools.
 
 Contains functions for:
 
