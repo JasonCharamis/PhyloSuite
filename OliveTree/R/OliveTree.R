@@ -40,69 +40,78 @@
 }
 
 # Load required packages or install them if necessary
-dependencies <- c( "optparse",
-            	     "ape",
-            		   "phytools",
-            		   "treeio",
-            		   "tidytree",
-            		   "TreeTools",
-            		   "ggstar",
-            		   "ggtree",
-            		   "dplyr",
-            		   "plotly" )
+dependencies <- c(
+  "optparse",
+  "ape",
+  "phytools",
+  "treeio",
+  "tidytree",
+  "TreeTools",
+  "ggstar",
+  "ggtree",
+  "dplyr",
+  "plotly" 
+)
 
 .load_packages(dependencies)
 
-#==================================== TREE MANIPULATION FUNCTIONS ====================================#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = TREE MANIPULATION FUNCTIONS = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = #
 
 #' read_tree
-#' Read a phylogenetic tree from a file.
+#' Read a phylogenetic tree from a file with auto-detection of bootstrap values.
 #'
-#' @param input_file Path to the file containing the phylogenetic tree.
+#' @param input_file Path to the file containing the phylogenetic tree. Input tree can be in newick or nexus format.
 #' 
-#' @return An object representing the phylogenetic tree.
+#' @return A tree data object representing the phylogenetic tree.
 #' 
 #' @export
 
 # Function to read and preprocess a tree
-read_tree <- function(input_file, bootstrap_support = TRUE) {
-  if (bootstrap_support == TRUE) {
-    t <- treeio::read.newick(input_file, node.label = 'support')
+read_tree <- function(input_file) {
+  if (grepl("\\.(newick|nwk|tre|tree)$", tolower(input_file))) {
+    t <- read.newick(input_file)
+  } else if (grepl("\\.(nxs|nex)$", tolower(input_file))) {
+      t <- read.nexus(input_file)
   } else {
-    t <- treeio::read.newick(input_file)
+      stop("Unsupported file format.")
   }
   
-  return(t)
+  # Check if the tree contains bootstrap values
+  if ( any(!is.null(t$node.label) && any(as.numeric(t$node.label) > 0)) == TRUE) {
+    to <- as.treedata(t, node.label = "support")
+  } else {
+      to <- as.treedata(t)
+  }
+  return(to)
 }
 
+
 #' .load_tree_object
-#' Load phylogenetic tree file and/or object as treedata object
+#' Load phylogenetic tree as treedata object
 #' 
-#' @param tree An object representing the phylogenetic tree. Should be a newick or nexus file, or an object of class 'treedata' or 'phylo'.
+#' @param tree An object representing the phylogenetic tree. Should be a newick or nexus file, or an object of class 'treedata' or 'phylo'. 
+#' If no file path is provided, the user will be prompted to provide an input phylogenetic tree through Rstudio's graphical user interface (GUI).
  
 .load_tree_object <- function(tree = NULL) {
   
   if ( is.null(tree) ) {
-    tree <- file.choose()
-  } 
-  
-  if (typeof(tree) == "character") {
-    if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-          tree_obj <- read_tree(tree)
-      } else {
-          stop("Provided file is not a newick or nexus file.")
-      }
+    tree <- read_tree(file.choose())
+    } else if (typeof(tree) == "character") {
+      if (file.exists(tree)) {
+        if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+            tree_obj <- read_tree(tree)
+          }
+        } else {
+            stop("Provided file is not a newick or nexus file.")
+        }
+      } else if (is(tree, "treedata")) {
+        tree_obj <- tree
+    } else if (is(tree, "phylo")) {
+        tree_obj <- treeio::as.treedata(tree)
+    } else {
+        stop("Provided file is not a treedata, a phylo or a tibble_df object.")
     }
-  } else if (is(tree, "treedata")) {
-     tree_obj <- tree
-  } else if (is(tree, "phylo")) {
-      tree_obj <- treeio::as.treedata(tree)
-  } else {
-      stop("Provided file is not a treedata, a phylo or a tibble_df object.")
-  }
-  
-return(tree_obj)
+  return(tree_obj)
 }
 
 
@@ -169,20 +178,27 @@ write_tree <- function(tree, output = "output_tree.nwk") {
 #' 
 #' @export
  
-print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkred", tip_label_size = 2, references = NULL) {
+print_internal_nodes <- function(
+    tree, 
+    form = "circular", 
+    node_id_color = "darkred", 
+    tip_label_size = 2, 
+    references = NULL
+) {
+  
   tree_obj <- .load_tree_object(tree)
 
   # Create the base tree plot with node labels
   plot <- ggtree(tree_obj, layout = form) +
-    geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
+          geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
 
   if ( is.null(references) ) {
     print("Only node IDs will be printed.")
     return(plot)
   } else {
-    
-      matching_labels <- unlist(sapply(references, function(reference) {
-        grep(reference, tree_obj@phylo$tip.label, value = TRUE, fixed = TRUE)
+      matching_labels <- unlist(
+        sapply(references, function(reference) {
+          grep(reference, tree_obj@phylo$tip.label, value = TRUE, fixed = TRUE)
       }))
       
       matching_dict <- data.frame(
@@ -191,7 +207,12 @@ print_internal_nodes <- function(tree, form = "circular", node_id_color = "darkr
       )
 
       plot <- plot %<+% matching_dict
-      plot <- plot + geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), fill = "black"), size = tip_label_size, align.tip.label = TRUE)
+      plot <- plot + 
+              geom_tiplab(
+                aes(label = ifelse(matching_flag == TRUE, label, NA), fill =  sample(colors(), 1)), 
+                size = tip_label_size, align.tip.label = TRUE
+              )
+      
       return(plot)
   }
 }
@@ -244,7 +265,6 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 #' @export
 
 # Function to group all descendant branches of node(s)
-
 group_descendants <- function(tree, ...) {
   tree_obj <- .load_tree_object(tree)
   nodes <- list(...)
@@ -285,10 +305,17 @@ group_descendants <- function(tree, ...) {
 
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
 
-extract_subtree <- function(tree, tip1, tip2) {
+extract_subtree <- function(
+    tree, 
+    tip1 = NULL, 
+    tip2 = NULL, 
+    taxon_list = NULL
+) {
+  
   tree_obj <- .load_tree_object(tree)
-
+  
   if ("support" %in% colnames(tree_obj@data)) {
+    
     # Append bootstrap values in the label section, in the nodes which are NOT tips
     # The bootstrap values will be kept there and transferred along with the labels in the new node numbering of the subtree
     phylo_data <- as.treedata(
@@ -298,30 +325,45 @@ extract_subtree <- function(tree, tip1, tip2) {
       ) %>%
         mutate(
           isTip = ifelse(!is.na(label), TRUE, FALSE)
-        ) %>%
+      ) %>%
         mutate(
           label = ifelse(isTip == FALSE, as.character(support), label)
-        ) %>%
+      ) %>%
         select(-support)
     )
+    } else {
+      phylo_data <- tree_obj
+    }
+  
+    t <- Preorder(phylo_data@phylo)
+  
+    if (is.null(taxon_list) && !is.null(tip1) && !is.null(tip2)) {
+        # Extract subtree based on anchor tip labels and/or patterns
+        tip1m <- t$tip.label[grepl(tip1, t$tip.label)]
+        tip2m <- t$tip.label[grepl(tip2, t$tip.label)]
+        
+        if (any(sapply(list(tip1m, tip2m), function(x) is.null(x)))) {
+          stop("Provided tip labels are NULL or were not found among tree tip labels.")
+        } else if (any(sapply(list(tip1m, tip2m), function(x) length(x) > 1))) {
+            stop("Provided tip names are not unique.")
+        }
+        
+        subtree <- ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1m, tip2m)))
+          
+  } else if ( is.null(tip1) && is.null(tip2) && !is.null(taxon_list)) {
+      taxon_tips <- t$tip.label %in% taxon_list
+    
+      if (any(taxon_tips)) {
+        mrca <- getMRCA(t, which(taxon_tips))
+        subtree <- ape::extract.clade(t, mrca)
+      } else {
+          stop("No matching species found in the tree.")
+          return(NULL)
+      }
   } else {
-    phylo_data <- tree_obj
+      stop("Please choose either tip1,tip2 OR taxon_list as identifiers for extracting subtree.")
   }
-
-  t <- Preorder(phylo_data@phylo)
-
-  # Extract subtree based on anchor tip labels and/or patterns
-  tip1m <- t$tip.label[grepl(tip1, t$tip.label)]
-  tip2m <- t$tip.label[grepl(tip2, t$tip.label)]
-
-  if (any(sapply(list(tip1m, tip2m), function(x) is.null(x)))) {
-    stop("Provided tip labels are NULL or were not found among tree tip labels.")
-  } else if (any(sapply(list(tip1m, tip2m), function(x) length(x) > 1))) {
-    stop("Provided tip names are not unique.")
-  }
-
-  subtree <- ape::extract.clade(t, node = phytools::findMRCA(t, c(tip1m, tip2m)))
-
+  
   if (!("support" %in% colnames(tree_obj@data))) {
     return(subtree)
   } else {
@@ -349,7 +391,7 @@ extract_subtree <- function(tree, tip1, tip2) {
   }
 }
 
-#==================================== TREE VISUALIZATION FUNCTIONS ====================================#
+# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = TREE VISUALIZATION FUNCTIONS = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = #
 
 #' highlight_tree
 #'
@@ -388,7 +430,16 @@ extract_subtree <- function(tree, tip1, tip2) {
 #' @export
 
 # Function to highlight nodes on a tree
-highlight_tree <- function(tree, highlight_nodes, colors = NULL, form = "circular", name = NULL, ...) {
+highlight_tree <- function(
+    tree, 
+    highlight_nodes, 
+    colors = NULL, 
+    form = "circular", 
+    name = NULL, 
+    save = TRUE,
+    output = "highlighted_tree.svg"
+) {
+  
   tree_obj <- .load_tree_object(tree)
 
   plot <- ggtree(tree_obj, layout = form) +
@@ -425,7 +476,33 @@ highlight_tree <- function(tree, highlight_nodes, colors = NULL, form = "circula
     linewidth = 0.9,
     show.legend = TRUE
   )
-  return(plot)
+  
+  # Export plot with provided options
+  if (exists("plot")) {
+    if (save == TRUE) {
+      if (is.null(output)) {
+        if (typeof(tree) == "character") {
+          if (file.exists(tree)) {
+            if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+              ggsave(plot = plot, sprintf("%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)), dpi = 600)
+              message <- sprintf("Tree plotted and saved as %s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree))
+              print(message)
+            }
+          }
+        } else {
+          ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
+          print("Tree plotted and saved as tree_plot_visualized.svg!")
+        }
+      } else {
+        ggsave(plot = plot, output, dpi = 600)
+        print(paste("Tree plotted and saved as", output))
+      }
+    } else {
+      print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
+    }
+    
+    return(plot)
+  }
 }
 
 
@@ -519,8 +596,8 @@ visualize_tree <- function(tree = NULL,
 			   ) {
 
  
-  tree_obj <- .load_tree_object( tree )
-  
+  tree_obj <- .load_tree_object(tree)
+
   # If option for branch length is not TRUE, make branch lengths NULL
   if (!(branch_length == TRUE | branch_length == T)) {
     print("Option branch length is deactivated. As a result, the subtree will be extracted as a cladogram with equal branch lengths.")
@@ -539,8 +616,8 @@ visualize_tree <- function(tree = NULL,
     
    tree_obj <- as.treedata ( as_tibble(tree_obj) %>%
                              mutate (bs_color = case_when(support < 50 ~ "snow2",
-                                                          support >= 50 & support < 75 ~ "grey",
-                                                          support >= 75 ~ "black",
+                                                          support >=   50 & support < 75 ~ "grey",
+                                                          support >=   75 ~ "black",
                                                           TRUE ~ NA  # Default case if none of the conditions are met
                                                          )))
       
@@ -555,14 +632,14 @@ visualize_tree <- function(tree = NULL,
    }
   
       # Manipulate bootstrap values
-      if ( bootstrap_numbers == TRUE && bootstrap_circles != TRUE ) {
+      if ( bootstrap_numbers == TRUE && bootstrap_circles !=TRUE ) {
         if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
           # bootstrap_number_nudge_y controls the relative height of the number on top of branch - use LARGER values as the SIZE of the tree INCREASES
           plot <- plot + geom_nodelab(  mapping = aes(x = branch, label = support), nudge_x = bootstrap_number_nudge_x, nudge_y = bootstrap_number_nudge_y, size = node_label_size) 
           } else {
               print ("Bootstrap values do not exist.")
           }
-      } else if ( bootstrap_numbers != TRUE && bootstrap_circles == TRUE ) {
+      } else if ( bootstrap_numbers !=TRUE && bootstrap_circles == TRUE ) {
             plot <- plot + geom_point2(fill = ifelse(!is.na(tree_obj@data$bs_color), tree_obj@data$bs_color, NA),
                                        color = ifelse(!is.na(tree_obj@data$bs_color), "black", NA),
                                        shape = 21, size = bootstrap_circle_size)
@@ -597,7 +674,7 @@ visualize_tree <- function(tree = NULL,
          print("Printing phylogenetic tree with all tip labels!")
        } else {
           if ( !is.null(tip_label_colors) ) {
-            if ( length(tip_label_colors) != length(pattern_id) ) {
+            if ( length(tip_label_colors) !=length(pattern_id) ) {
              stop("tip_label_colors and pattern_ids should have the same length!")
             }
           }
@@ -795,7 +872,11 @@ visualize_tree <- function(tree = NULL,
          if (typeof(tree) == "character") {
            if (file.exists(tree)) {
              if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-                ggsave(plot = plot, sprintf("%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)), dpi = 600)
+                
+               ggsave(plot = plot, sprintf(
+                  "%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)
+                  ), dpi = 600)
+               
                 message <- sprintf("Tree plotted and saved as %s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree))
                 print(message)
              }

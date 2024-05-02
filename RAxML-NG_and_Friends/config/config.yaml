@@ -4,4 +4,5 @@ raxmlng_threads: 40
 random_tree_number: 10
 parsimony_tree_number: 90
 type: aa
-outgroup: '' ## If this is an empty string, the tree is automatically midpoint-rooted.
+outgroup: ''
+raxml_ng: 
