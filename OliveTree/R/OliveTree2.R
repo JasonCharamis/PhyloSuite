@@ -53,7 +53,7 @@ dependencies <- c(
 
 .load_packages(dependencies)
 
-# = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = TREE MANIPULATION FUNCTIONS = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = #
+#==================================== TREE MANIPULATION FUNCTIONS ====================================#
 
 #' read_tree
 #' Read a phylogenetic tree from a file with auto-detection of bootstrap values.
@@ -154,6 +154,67 @@ write_tree <- function(tree, output = "output_tree.nwk") {
 }
 
 
+#' export_plot
+#' # Function to export plot with provided options
+#' 
+#' @param plot A ggtree plot object.
+#' @param save Option to save plot to output svg file. Default: True
+#' @param output Name of the output file. Default: 'tree_plot_visualized.svg'
+#' 
+#' @return A ggplot object representing the phylogenetic tree and optionally an output svg file with this phylogenetic tree.
+#' 
+#' @examples
+#' \dontrun{
+#' # Export a phylogenetic tree object
+#' export_plot (plot, save = TRUE, output = "tree_plot_visualized.svg")
+#'  
+#' @export
+
+export_plot <- function(
+    plot,
+    save = TRUE,
+    output = "tree_plot_visualized.svg"
+) {
+                        
+    if (!(is.null(output))) {
+      save == TRUE
+    }
+    
+    # Export plot with provided options
+    if (exists("plot")) {
+      if (save == TRUE) {
+        if (is.null(output)) {
+          if (typeof(tree) == "character") {
+            if (file.exists(tree)) {
+              if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+                
+                ggsave(
+                  plot = plot, 
+                  sprintf( "%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)), 
+                  dpi = 600
+                )
+                
+                message <- sprintf("Tree plotted and saved as %s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree))
+                print(message)
+              }
+            }
+          } else {
+            ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
+            print("Tree plotted and saved as tree_plot_visualized.svg!")
+          }
+        } else {
+          ggsave(plot = plot, output, dpi = 600)
+          print(paste("Tree plotted and saved as", output))
+        }
+      } else {
+        print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
+      }
+      
+      return(plot)
+    }
+}
+
+
 #' print_internal_nodes
 #' This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
 #' to highlight specific tip labels that match a user-provided pattern.
@@ -179,9 +240,11 @@ write_tree <- function(tree, output = "output_tree.nwk") {
 print_internal_nodes <- function(
     tree, 
     form = "circular", 
-    node_id_color = "darkred", 
+    node_id_color = "red", 
     tip_label_size = 2, 
-    references = NULL
+    references = NULL,
+    save = TRUE,
+    output = "highlighted_tree.svg"
 ) {
   
   tree_obj <- .load_tree_object(tree)
@@ -210,9 +273,14 @@ print_internal_nodes <- function(
                 aes(label = ifelse(matching_flag == TRUE, label, NA), fill =  sample(colors(), 1)), 
                 size = tip_label_size, align.tip.label = TRUE
               )
-      
-      return(plot)
   }
+  
+  export_plot(
+    plot, 
+    save = save,
+    output = output
+  )
+
 }
 
 #' bootstrap_collapse
@@ -473,35 +541,17 @@ highlight_tree <- function(
     extend = 0.10,
     linetype = 1,
     linewidth = 0.9,
-    show.legend = TRUE
+    show.legend = TRUE,
+    save = TRUE,
+    output = "tree_plot_highlighted.svg"
+  )
+
+  export_plot(
+    plot, 
+    save = save,
+    output = output
   )
   
-  # Export plot with provided options
-  if (exists("plot")) {
-    if (save == TRUE) {
-      if (is.null(output)) {
-        if (typeof(tree) == "character") {
-          if (file.exists(tree)) {
-            if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-              ggsave(plot = plot, sprintf("%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)), dpi = 600)
-              message <- sprintf("Tree plotted and saved as %s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree))
-              print(message)
-            }
-          }
-        } else {
-          ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
-          print("Tree plotted and saved as tree_plot_visualized.svg!")
-        }
-      } else {
-        ggsave(plot = plot, output, dpi = 600)
-        print(paste("Tree plotted and saved as", output))
-      }
-    } else {
-      print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
-    }
-    
-    return(plot)
-  }
 }
 
 
@@ -606,145 +656,121 @@ visualize_tree <- function(
     tree_obj@phylo$edge.length <- NULL
   } 
   
-  # Check if bootstrap support is present in the tree object
-  if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
-      if ( all(tree_obj@data$support < 10, na.rm = TRUE) == TRUE) { # Bootstrap values are in scale of 1. 
-        warning("Provided bootstrap values were in scale of 1 and were multiplied by 100 to change scales.")
-        
-        tree_obj@data$support <- sapply(tree_obj@data$support, function(x) {
-            x <- x * 100
-        })
-      }
-    
-   tree_obj <- as.treedata ( as_tibble(tree_obj) %>%
-                             mutate (bs_color = case_when(support < 50 ~ "snow2",
-                                                          support >=   50 & support < 75 ~ "grey",
-                                                          support >=   75 ~ "black",
-                                                          TRUE ~ NA  # Default case if none of the conditions are met
-                                                         )
-                                     )
-                           )
-      
-   if ( flip_nodes == TRUE ) {
-     if ( !is.null(node1) || !is.null(node2) ) {
+  if ( flip_nodes == TRUE ) {
+    if ( !is.null(node1) || !is.null(node2) ) {
       plot <- ggtree::flip( ggtree(tree_obj, layout = form), node1, node2 )
-     } else {
+    } else {
         stop ("Please provide node IDs to flip. Find node IDs of interest using the print_internal_nodes( tree, references = c(taxon_pattern1, taxon_pattern1) ) function.")
-     }
-   } else {
-      plot <- ggtree(tree_obj, layout = form)
-   }
-  
-      # Manipulate bootstrap values
-      if ( bootstrap_numbers == TRUE && bootstrap_circles != TRUE ) {
-        if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
-          
-          # bootstrap_number_nudge_y controls the relative height of the number on top of branch - use LARGER values as the SIZE of the tree INCREASES
-          plot <- plot + geom_nodelab(  
-            mapping = aes(x = branch, label = support), 
-            nudge_x = bootstrap_number_nudge_x, 
-            nudge_y = bootstrap_number_nudge_y, 
-            size = node_label_size
-          ) 
-          
-          } else {
-              print ("Bootstrap values do not exist.")
-          }
-      } else if ( bootstrap_numbers != TRUE && bootstrap_circles == TRUE ) {
-            plot <- plot + geom_point2(
-              fill = ifelse(!is.na(tree_obj@data$bs_color), tree_obj@data$bs_color, NA),
-              color = ifelse(!is.na(tree_obj@data$bs_color), "black", NA),
-              shape = 21, size = bootstrap_circle_size
-            )
-          
-          if (bootstrap_legend == TRUE) {
-            plot <- plot + theme_tree(legend.position = c(0.2, 0.2))
-          }
-            
-      } else if ( bootstrap_numbers == TRUE && bootstrap_circles == TRUE ) {
-            stop ("bootstrap_numbers = TRUE (default) and bootstrap_circles = TRUE. Please select either bootstrap circles or bootstrap numbers option.")
-      } else {
-            print ("Both bootstrap_circles and bootstrap_numbers options are FALSE. Bootstrap values will not be printed.")
-      }
+    }
   } else {
-      tree_obj <- tree_obj
       plot <- ggtree(tree_obj, layout = form)
-      print ("Bootstrap values are not present in the tree object.")
   }
   
+  # Check if bootstrap support is present in the tree object
+  if (any(!is.null(tree_obj@data)) && any(!is.na(tree_obj@data))) {
+    if ( all(tree_obj@data$support <= 10, na.rm = TRUE) == TRUE) { # Bootstrap values are in scale of 1. 
+      warning("Provided bootstrap values were in scale of 1 and were multiplied by 100 to change scales.")
+      
+      tree_obj@data$support <- sapply(
+        tree_obj@data$support, function(x) {
+          x <- x * 100
+        }
+      )
+    } 
+    
+    tree_obj <- as.treedata (
+      as_tibble(tree_obj) %>%
+        mutate (
+          bs_color = case_when(
+            support < 50 ~ "snow2",
+            support >=   50 & support < 75 ~ "grey",
+            support >=   75 ~ "black",
+            TRUE ~ NA 
+          )
+        )
+    )
+  } else {
+    print ("Bootstrap support was not found in tree.")
+  }
+  
+  # Manipulate bootstrap values
+   if (bootstrap_numbers || bootstrap_circles) {
+     if (!is.null(tree_obj@data$support)) {
+       if (max(tree_obj@data$support, na.rm = TRUE) < 10) {
+         tree_obj@data$support <- tree_obj@data$support * 100
+         print("Bootstrap values scaled to percentage.")
+       }
+       
+       if (bootstrap_numbers) {
+         plot <- plot + geom_nodelab(
+           aes(label = round(support, 2)), 
+           nudge_y = bootstrap_number_nudge_y,
+           size = node_label_size
+         )
+         print("Bootstrap values displayed as labels.")
+       }
+       
+       if (bootstrap_circles) {
+         plot <- plot + geom_point(
+           aes(size = support),
+           shape = 21,
+           fill = 'gray',
+           alpha = 0.6
+         ) + scale_size_continuous(range = c(1, bootstrap_circle_size))
+         print("Bootstrap values displayed as circles.")
+       }
+     } else {
+         warning("No bootstrap values found in the tree object.")
+     }
+   }
+   
    # Visualize phylogenetic tree with an option to select the printed tips, based on pattern
    if (is.null(color) && is.null(shape) ) {
      if (length(references) > 0) { 
        stop("The 'references' option can be used only if tip mappings are provided. If you want to print tip labels with a specific pattern use the tiplabels = TRUE and pattern = 'desired pattern' options")
      }
      
-   # If you want to print some of the species labels as text, do not include them into the color and shape mapping vectors, and provide them as 'references'
-   if (tiplabels == TRUE) { 
-     if (is.null(pattern_id)) {
+    # If you want to print some of the species labels as text, do not include them into the color and shape mapping vectors, and provide them as 'references'
+     if (tiplabels == TRUE) {
+       if (is.null(pattern_id)) {
          plot <- plot + geom_tiplab(
            size = tip_label_size, 
-           color = ifelse(is.null(tip_label_colors), "black", tip_label_colors), 
-           show.legend = mappings_legend, align.tip.label = TRUE
+           color = ifelse(is.null(color), "black", color), 
+           align.tip.label = TRUE
          )
-         
          print("Printing phylogenetic tree with all tip labels!")
        } else {
-          if ( !is.null(tip_label_colors) ) {
-            if ( length(tip_label_colors) != length(pattern_id) ) {
-             stop("tip_label_colors and pattern_ids should have the same length!")
-            }
-          }
-         
-         if (any(sapply(
-           pattern_id, function(pattern) {
-             any(grepl(pattern, tree_obj@phylo$tip.label))
-           }
-         ))) {
-           
-           matching_labels <- unlist(
-             sapply(pattern_id, function(pattern) {
-               grep(pattern, tree_obj@phylo$tip.label, fixed = TRUE, value = TRUE)
+         matching_labels <- unlist(
+           sapply(pattern_id, function(pattern) {
+             grep(pattern, tree_obj@phylo$tip.label, fixed = TRUE, value = TRUE)
            }), use.names = FALSE)
-           
-             matching_dict <- data.frame(
-               label = matching_labels,
-               matching_flag = TRUE,
-               color_l = if (is.null(tip_label_colors)) {
-                            "black"
-                         } else if (length(tip_label_colors) > 0) {
-                            unlist( lapply(names(group_colors), function(label) { 
-                              ifelse( grepl(label, matching_labels), tip_label_colors[label], NA )
-                            }))
-                          } else {
-                              print(paste("No color was found in the associative tip_label_colors vector for", x, "!\n"))
-                              print(paste("Will use", tip_label_colors, "for all", x, "instances!"))
-                              tip_label_colors
-                          }
-              )
-      
-         # Remove lines with NA values
-         matching_dict <- matching_dict[complete.cases(matching_dict), ]
          
-         plot <- plot %<+% matching_dict
-         plot <- plot + geom_tiplab(
-           aes(label = ifelse(matching_flag == TRUE, label, NA), 
-               color = ifelse(matching_flag == TRUE, color_l, NA) ),
-               size = tip_label_size, show.legend = mappings_legend, align.tip.label = TRUE
+         if (length(matching_labels) > 0) {
+           matching_dict <- data.frame(
+             label = matching_labels,
+             color = color[matching_labels]
+           )
+           matching_dict$color[is.na(matching_dict$color)] <- "black"
+           
+           plot <- plot + geom_tiplab(
+             aes(label = label, color = color), 
+             data = matching_dict,
+             size = tip_label_size, 
+             align.tip.label = TRUE
            ) + scale_color_identity()
-              
-              cat("Printing phylogenetic tree plot with tip labels matching", pattern_id, "!\n")
-          } else {
-              cat ("Provided", pattern_id, "was not found among tip labels! Printing phylogenetic tree plot without tip labels!")
-              plot <- plot
-          }
+           
+           cat("Printing phylogenetic tree plot with tip labels matching", pattern_id, "!\n")
+         } else {
+           cat("Provided", pattern_id, "was not found among tip labels! Printing phylogenetic tree plot without tip labels!\n")
+         }
        }
-   } else { 
-      if (!is.null(pattern_id) || !is.null(tip_label_colors)) {
+     } else { 
+        if (!is.null(pattern_id) || !is.null(tip_label_colors)) {
             print ("Please enable tip label printing with tiplabels = TRUE.")
       } else {
             print ("Printing phylogenetic tree plot without tip labels!")
       }
-   }
+    }
   } else { # Visualize phylogenetic tree with color and shape mappings, and an option to print reference species as text
 
          if ( tiplabels == TRUE && !is.null(shape) ) {
@@ -780,7 +806,9 @@ visualize_tree <- function(
                    plot <- plot_ref + 
                      geom_tiplab(aes(
                        label = ifelse(reference_flag, label, "")), 
-                       size = tip_label_size, color = "black", align.tip.label = TRUE
+                       size = tip_label_size, 
+                       color = "black", 
+                       align.tip.label = TRUE
                    )
                      
                    non_ref_species <- setdiff(tree_obj@phylo$tip.label, ref_species)
@@ -798,8 +826,6 @@ visualize_tree <- function(
                        }
                      )
                    }
-                   
-                   
                    
                 } else {
                     print ("Provided 'reference' pattern was not found.")
@@ -850,39 +876,54 @@ visualize_tree <- function(
                 mapping = aes( 
                   subset = isTip,
                   fill = ifelse(!is.na(species_colors), s_color, NA),
-                  starshape = ifelse(!is.na(species_shapes), s_shape, NA)
-                ), show.legend = mappings_legend, size = tip_shape_size) + 
+                  starshape = ifelse(!is.na(species_shapes), s_shape, NA),
+                ), size = tip_shape_size,
+                show.legend = mappings_legend 
+              ) + 
                 scale_fill_identity() +
                 scale_starshape_identity()
-                             
+          
             } else if ( !is.null(color) && is.null(shape)) {
+              
+                # Match species names with names in the color vector to get indices
+                color_indices <- sapply(species_names, function(name) {
+                  idx <- match(name, names(color))
+                  if (!is.na(idx)) {
+                    return(color[idx])
+                  } else {
+                    return("black")  # Default color when no match is found
+                  }
+                })
+                
+                # Create the data frame with no risk of NAs in critical fields
                 tip_colors_df <- data.frame(
-                  label = tip_labels,
+                  label = tip_labels,  
                   species_colors = species_names,
-                  s_color = color[match(sapply(species_dict, function(entry) entry$species), names(color))]
+                  s_color = color_indices,
+                  stringsAsFactors = FALSE  # Prevent conversion to factors
                 )
+                
+                row.names(tip_colors_df) <- sapply(
+                  row.names(tip_colors_df), function (name) {
+                    gsub("\\..*", "", name)
+                })
                 
                 plot <- plot %<+% tip_colors_df
                 
-                print (tip_colors_df)
-                
-                if (tiplabels == TRUE) {
-                  plot <- plot + geom_tiplab(
-                    mapping = aes( 
-                      subset = isTip & !is.na(s_color), 
-                      color = ifelse(!is.na(s_color), s_color, NA)
-                    ), show.legend = FALSE, size = tip_shape_size, align.tip.label = TRUE) +
-                       scale_fill_identity()
-                  
-                } else {
-                    plot <- plot + geom_star(
-                      mapping = aes( subset = isTip & !is.na(s_color),
-                                     fill = ifelse(!is.na(species_colors), s_color, NA)
-                      ), show.legend = mappings_legend, starshape = "circle", size = tip_shape_size
-                    ) + scale_fill_identity()
-                }
-                
-            } else if ( is.null(color) && !is.null(shape)) {
+                plot <- plot + geom_star(
+                  mapping = aes( 
+                      subset = isTip,
+                      fill = ifelse(!is.na(species_colors), s_color, NA),
+                    ), 
+                  starshape = "circle",
+                  size = tip_shape_size,
+                  show.legend = mappings_legend 
+                ) +
+                  scale_fill_identity() + 
+                  scale_starshape_identity()
+              }
+        
+           else if ( is.null(color) && !is.null(shape)) {
                 
                 tip_shapes_df <- data.frame(
                   label = tip_labels,
@@ -897,10 +938,15 @@ visualize_tree <- function(
                 }
   
                 plot <- plot + geom_star(
-                  mapping = aes( subset = isTip & !is.na(s_shape),
-                                 starshape = ifelse(!is.na(species_shapes), s_shape, NA)),
-                                 fill = "black", size = tip_shape_size, show.legend = mappings_legend
-                  ) + scale_starshape_identity()
+                  mapping = aes( 
+                    subset = isTip & !is.na(s_shape),
+                    starshape = ifelse(!is.na(species_shapes), s_shape, NA)
+                  ), 
+                  show.legend = mappings_legend,
+                  fill = "black", 
+                  size = tip_shape_size
+                ) + 
+                scale_starshape_identity()
             }
          } else {
             stop("Provided tip mappings were not found.")
@@ -922,40 +968,10 @@ visualize_tree <- function(
        }
    }
   
-  if (!(is.null(output))) {
-    save == TRUE
-  }
-  
-   # Export plot with provided options
-   if (exists("plot")) {
-     if (save == TRUE) {
-       if (is.null(output)) {
-         if (typeof(tree) == "character") {
-           if (file.exists(tree)) {
-             if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-                
-               ggsave(
-                 plot = plot, 
-                 sprintf( "%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)), 
-                 dpi = 600
-               )
-               
-                message <- sprintf("Tree plotted and saved as %s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree))
-                print(message)
-             }
-           }
-        } else {
-            ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
-            print("Tree plotted and saved as tree_plot_visualized.svg!")
-        }
-      } else {
-          ggsave(plot = plot, output, dpi = 600)
-          print(paste("Tree plotted and saved as", output))
-        }
-    } else {
-        print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
-    }
-     
-  return(plot)
-  }
+  export_plot(
+    plot, 
+    save = save,
+    output = output
+  )
+
 }

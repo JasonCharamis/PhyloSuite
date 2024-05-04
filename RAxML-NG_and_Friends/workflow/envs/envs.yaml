@@ -1,0 +1,12 @@
+name: envs
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - mafft
+    - trimal
+    - pypythia
+    - modeltest-ng
+    - raxml-ng
+    - ete3
+    - seaborn

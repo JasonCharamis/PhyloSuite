@@ -1,0 +1,64 @@
+---
+title: "OliveTree: Advanced Phylogenetic Tree Visualization in R"
+
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 200
+---
+
+#### "Benchmarking with the Squamata species tree with 6,885 species from Title & Singhal et al. (2024). The macroevolutionary singularity of snakes. Science. 383(6685), 918--923."
+
+#\`\`\` {r, results = 'hide', message = FALSE, warning = FALSE, fig.cap = "Demonstrating OliveTree's capabilities."}
+
+# Load OliveTree
+
+source("/home/jason/bin/EvoSuite/OliveTree/R/OliveTree.R") setwd("/home/jason/Documents/OliveTrees")
+
+# First read and visualize the whole tree with 6,885 species
+
+squamate_tree \<- read_tree(input_file = "squamates_Title_Science2024_ultrametric_constrained.tre") squamates \<- read.csv("squamateTreetaxa.csv")
+
+# Highlight snakes and other major taxonomic categories from huge tree
+
+snake_families \<- c( "Acrochordidae", "Aniliidae", "Anomalepididae", "Anomochilidae", "Bipedidae", "Boidae", "Bolyeridae", "Colubridae", "Cylindrophiidae", "Elapidae",
+"Gerrhopilidae","Helodermatidae", "Homalopsidae", "Lamprophiidae", "Leptotyphlopidae", "Loxocemidae", "Pythonidae", "Typhlopidae", "Uropeltidae", "Viperidae", "Xenopeltidae", "Xenophidiidae",
+"Xenotyphlopidae" )
+
+lizard_families \<- c( "Agamidae", "Alopoglossidae", "Amphisbaenidae", "Anguidae", "Anniellidae", "Anomalepididae", "Anomochilidae", "Bipedidae", "Blanidae", "Bolyeridae", "Cadeidae",
+"Carphodactylidae", "Chamaeleonidae", "Cordylidae", "Corytophanidae", "Crotaphytidae", "Cyclocoridae", "Dactyloidae", "Dibamidae", "Diplodactylidae", "Diploglossidae", "Eublepharidae", "Gekkonidae",
+"Gerrhopilidae", "Gerrhosauridae", "Gymnophthalmidae", "Helodermatidae", "Hoplocercidae", "Iguanidae", "Lacertidae", "Lanthanotidae", "Leiocephalidae", "Leiosauridae", "Liolaemidae", "Opluridae",
+"Pareidae", "Phrynosomatidae", "Phyllodactylidae", "Polychrotidae", "Pygopodidae", "Rhineuridae", "Scincidae", "Shinisauridae", "Sphaerodactylidae", "Teiidae", "Trogonophidae", "Tropiduridae",
+"Varanidae", "Xantusiidae", "Xenosauridae" )
+
+# Get the snake and lizard species names
+
+snake_species \<- unlist(sapply( snake_families, function(family) { squamates[grepl( family, squamates[, 'family'] ), ][, 1] } ))
+
+lizard_species \<- unlist(sapply( lizard_families, function(family) { squamates[grepl( family, squamates[, 'family'] ), ][, 1] } ))
+
+# Identified nodes corresponding to each category
+
+nodes \<- print_internal_nodes( squamate_tree, form = "circular", references = c(snake_species, lizard_species) )
+
+highlight_nodes = c("Snakes" = 6890, "Lizards" = 8983)
+
+# Generate the highlighted tree with colors corresponding to the different phylogenetic groups
+
+highlight_tree( squamate_tree, form = "circular", highlight_nodes = highlight_nodes, colors = c("Snakes" = "red3", "Lizards" = "green4"), save = FALSE )
+
+# Extract the Crotalus genus subtree
+
+crotalus_species \<- c(squamates[grepl('Crotalus', squamates[, 'genus']), ][, 1]) crotalus_subtree \<- extract_subtree(tree = squamate_tree, taxon_list = crotalus_species)
+
+# Create color and shape mapping for each species
+
+group_colors \<- sapply ( crotalus_subtree\$tip.label, function (x) { c( x = sample(colors(), 1) ) } )
+
+names(group_colors) \<- sapply( names(group_colors), function (x) { gsub(".x", "", x) } )
+
+# Visualize the Crotalus genus subtree
+
+visualize_tree( crotalus_subtree, color = group_colors, form = "circular", tiplabels = TRUE, tip_label_size = 3, branch_length = TRUE, save = FALSE )
+
+#\`\`\`
