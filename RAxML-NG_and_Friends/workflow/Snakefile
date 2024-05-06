@@ -19,10 +19,10 @@ configfile: f"{workflow_dir}/config/config.yaml"
 scripts = f"{workflow_dir}/workflow/scripts"
 
 # Define raxml_ng_path globally because it's also needed by Pythia
-raxml_ng_path = if subprocess.run(["which", raxml-ng-mpi], capture_output=True, text=True).stdout.strip('\n') else 'RaxML-NG'
+raxml_ng_path = subprocess.run(["which", config['raxml_ng']], capture_output=True, text=True).stdout.strip('\n')
+fasta_files = [f for f in os.listdir(".") if f.endswith((".fasta", ".fa", ".faa"))]
 
 # Snakemake Pipeline
-fasta_files = [f for f in os.listdir(".") if f.endswith((".fasta", ".fa", ".faa"))]
 
 rule all:
     input:
@@ -109,5 +109,4 @@ rule midpoint_root:
 rule visualize_tree:
     input: tree = "all_genes.aln.trimmed.phy.raxml.support.tree"
     output: "all_genes.aln.trimmed.phy.raxml.support.tree.svg"
-    shell: """ python3 {scripts}/ETElib.py --tree {input.tree} --visualize """ 
-
+    shell: """ python3 {scripts}/ETElib.py --tree {input.tree} --visualize """

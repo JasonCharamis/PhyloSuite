@@ -1,8 +1,8 @@
 trimal_threshold: 0.50
-modeltestng_threads: 20
+modeltest_threads: 20
 raxmlng_threads: 40
 random_tree_number: 10
 parsimony_tree_number: 90
 type: aa
 outgroup: ''
-raxml_ng: 
+raxml_ng:'raxml-ng-mpi'

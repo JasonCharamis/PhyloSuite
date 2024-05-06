@@ -4,7 +4,7 @@
 #!/usr/bin/env python3
 
 import seaborn as sns
-import ete3
+from ete3 import Tree, TreeStyle, NodeStyle, TextFace
 import re, random, os
 import argparse
 
@@ -131,9 +131,9 @@ def visualize_tree(tree, layout = "c", show = True):
 
     """
     
-    t=ete3.Tree(tree)
+    t=Tree(tree)
 
-    ts = ete3.TreeStyle()
+    ts = TreeStyle()
     ts.show_leaf_name = False
     ts.mode = layout
 
@@ -210,7 +210,7 @@ def midpoint(input):
 
     """
     
-    tree = ete3.Tree(input, format = 2)   
+    tree = Tree(input, format = 2)   
     midpoint = tree.get_midpoint_outgroup()
 
     # set midpoint root as outgroup #
@@ -230,7 +230,7 @@ def bootstrap_collapse(tree, threshold=50):
 
     """
     
-    t=ete3.Tree(tree)
+    t=Tree(tree)
     for node in t.traverse():
         if node.support < threshold:
             return node.delete()
@@ -247,7 +247,7 @@ def resolve_polytomies(input):
 
     """
 
-    tree = ete3.Tree(input, format = 2)   
+    tree = Tree(input, format = 2)   
     tree.resolve_polytomy(recursive=True) # resolve polytomies in tree #
     tree.write(format = 2, outfile=input+".resolved_polytomies")
     return
@@ -268,7 +268,7 @@ def count_leaves ( tree ):
     """
     
     nleaves = []
-    t = ete3.Tree(tree)
+    t = Tree(tree)
     
     for leaf in t.iter_leaves():
         nleaves.append(leaf)
@@ -288,7 +288,7 @@ def count_descendant_leaves ( tree, node ):
 
     """
     
-    t=ete3.Tree(tree)
+    t=Tree(tree)
     descendant_leaves = []
 
     for node in t.traverse ("preorder"):
@@ -309,7 +309,7 @@ def count_leaves_by_taxon ( tree, taxon_ID ):
 
     """
     
-    t=ete3.Tree(tree)
+    t=Tree(tree)
     descendant_leaves = []
 
     for node in t.traverse ("preorder"):
@@ -337,14 +337,14 @@ def sub_names_nwk(tree, file_with_names, pattern=False):
 
     """
     
-    n = ete3.Tree(tree)
+    n = Tree(tree)
     name = {}
 
     file_format = identify_format(file_with_names)
 
     if file_format == 'newick':
         if pattern == False:
-            t = ete3.Tree(file_with_names)
+            t = Tree(file_with_names)
 
             for node in t.traverse():
                 if node.is_leaf():
@@ -388,7 +388,7 @@ def prep_ASTRAL_input (tree):
             tl = treefile.readlines()
 
             for tre in tl:        
-                t = ete3.Tree ( tre, quoted_node_names = True )
+                t = Tree ( tre, quoted_node_names = True )
 
                 for node in t.traverse():        
                     if node.is_leaf:

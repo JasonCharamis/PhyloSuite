@@ -1,4 +1,4 @@
-source("~/bin/EvoSuite/OliveTree/R/OliveTree2.R")
+source("~/bin/EvolSuite/OliveTree/R/OliveTree.R")
 setwd("~/Documents/OliveTrees")
 
     
@@ -28,7 +28,6 @@ lizard_families <- c("Agamidae", "Alopoglossidae", "Amphisbaenidae", "Anguidae",
        "Gerrhopilidae", "Gerrhosauridae", "Gymnophthalmidae", "Helodermatidae", "Hoplocercidae", "Iguanidae", "Lacertidae", "Lanthanotidae",
        "Leiocephalidae", "Leiosauridae", "Liolaemidae", "Opluridae", "Pareidae", "Phrynosomatidae", "Phyllodactylidae", "Polychrotidae", "Pygopodidae",
        "Rhineuridae", "Scincidae", "Shinisauridae", "Sphaerodactylidae", "Teiidae", "Trogonophidae", "Tropiduridae", "Varanidae", "Xantusiidae", "Xenosauridae")
-
 
 snake_species <- unlist(sapply(
   snake_families,
@@ -84,7 +83,10 @@ visualize_tree(
   form = "circular", 
   taxonID_separator = NULL,
   tiplabels = FALSE, 
-  tip_shape_size = 4, 
+  tip_shape_size = 5, 
   branch_length = TRUE, 
+  mappings_legend = TRUE,
   save = FALSE
 )
+
+

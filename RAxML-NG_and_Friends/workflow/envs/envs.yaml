@@ -10,3 +10,4 @@ dependencies:
     - raxml-ng
     - ete3
     - seaborn
+    - pyqt5
