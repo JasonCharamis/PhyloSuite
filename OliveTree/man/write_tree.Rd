@@ -19,3 +19,9 @@ A ggplot object representing the phylogenetic tree with node IDs and optional hi
 write_tree
 This function writes a tree in newick format, while preserving the bootstrap values.
 }
+\examples{
+\dontrun{
+# Write a sample tree
+write_tree( tree = tree_obj, output = 'tree_obj.nwk' )
+}
+}

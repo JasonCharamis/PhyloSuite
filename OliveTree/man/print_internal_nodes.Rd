@@ -2,16 +2,17 @@
 % Please edit documentation in R/OliveTree.R
 \name{print_internal_nodes}
 \alias{print_internal_nodes}
-\title{print_internal_nodes
-This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
-to highlight specific tip labels that match a user-provided pattern.}
+\title{print_internal_nodes: This function generates a plot of the provided phylogenetic tree with node IDs displayed.
+Additionally, it offers the option to highlight specific tip labels that match a user-provided pattern.}
 \usage{
 print_internal_nodes(
   tree,
   form = "circular",
-  node_id_color = "darkred",
+  node_id_color = "red",
   tip_label_size = 2,
-  references = NULL
+  references = NULL,
+  save = TRUE,
+  output = "highlighted_tree.svg"
 )
 }
 \arguments{
@@ -25,11 +26,11 @@ print_internal_nodes(
 }
 \value{
 A ggplot object representing the phylogenetic tree with node IDs and optional highlighted tip labels.
+Used for identifying nodes for interest for extracting subtrees, flipping or labeling them in the visualize_tree function.
 }
 \description{
-print_internal_nodes
-This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
-to highlight specific tip labels that match a user-provided pattern.
+print_internal_nodes: This function generates a plot of the provided phylogenetic tree with node IDs displayed.
+Additionally, it offers the option to highlight specific tip labels that match a user-provided pattern.
 }
 \examples{
 \dontrun{

@@ -6,7 +6,6 @@
 #' @import ggstar
 #' @import ggtree
 #' @import dplyr
-#' @import plotly
 #' @import BiocManager
 #' 
 #' @title .load_packages
@@ -15,8 +14,8 @@
 #' @return NULL
 #' @export
 
-# Function to check if a package is installed, and if not, install it.
-# Function to install or load a package
+# Function to check if a package is installed, and if not, install it. 
+# Then load it in memory.
 
 .load_packages <- function(tools) {
   tmp <- as.data.frame(installed.packages()) 
@@ -47,8 +46,7 @@ dependencies <- c(
   "TreeTools",
   "ggstar",
   "ggtree",
-  "dplyr",
-  "plotly" 
+  "dplyr"
 )
 
 .load_packages(dependencies)
@@ -74,7 +72,7 @@ read_tree <- function(input_file) {
       stop("Unsupported file format.")
   }
   
-  # Check if the tree contains bootstrap values
+  # Check if the tree contains bootstrap values, and if it contains load them
   if ( any(!is.null(t$node.label) && any(as.numeric(t$node.label) > 0)) == TRUE) {
     to <- treeio::as.treedata(t, node.label = "support")
   } else {
@@ -87,8 +85,15 @@ read_tree <- function(input_file) {
 #' .load_tree_object
 #' Load phylogenetic tree as treedata object
 #' 
-#' @param tree An object representing the phylogenetic tree. Should be a newick or nexus file, or an object of class 'treedata' or 'phylo'. 
+#' @param tree An object representing the phylogenetic tree, providing a single tree entrypoint used in the whole package. 
+#'             Makes use of the read_tree function.
+#'
 #' If no file path is provided, the user will be prompted to provide an input phylogenetic tree through Rstudio's graphical user interface (GUI).
+#' 
+#' @return A tree data object representing the phylogenetic tree.
+#' 
+#' @export
+
 
 .load_tree_object <- function(tree = NULL) {
   
@@ -125,7 +130,7 @@ read_tree <- function(input_file) {
 #' \dontrun{
 #' # Write a sample tree
 #' write_tree( tree = tree_obj, output = 'tree_obj.nwk' )
-#' 
+#' }
 #' @export
 
 write_tree <- function(tree, output = "output_tree.nwk") {
@@ -153,21 +158,21 @@ write_tree <- function(tree, output = "output_tree.nwk") {
   ape::write.tree(phy = phylo_data@phylo, output)
 }
 
-
-#' export_plot
-#' # Function to export plot with provided options
+#' export_plot: Function to export plot with provided options
+#' 
 #' 
 #' @param plot A ggtree plot object.
 #' @param save Option to save plot to output svg file. Default: True
 #' @param output Name of the output file. Default: 'tree_plot_visualized.svg'
 #' 
 #' @return A ggplot object representing the phylogenetic tree and optionally an output svg file with this phylogenetic tree.
+#'         Main plot exporting function of the package. 
 #' 
 #' @examples
-#' \dontrun{
-#' # Export a phylogenetic tree object
+#' dontrun{
+#' # Export plot with option to save
 #' export_plot (plot, save = TRUE, output = "tree_plot_visualized.svg")
-#'  
+#' }
 #' @export
 
 export_plot <- function(
@@ -181,14 +186,13 @@ export_plot <- function(
   }
   
   # Export plot with provided options
-  if (exists("plot")) {
-    if (save == TRUE) {
-      if (is.null(output)) {
-        if (typeof(tree) == "character") {
-          if (file.exists(tree)) {
-            if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+  if (save == TRUE) {
+    if (is.null(output)) {
+      if (typeof(tree) == "character") {
+        if (file.exists(tree)) {
+          if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
               
-              ggsave(
+            ggsave(
                 plot = plot, 
                 sprintf( "%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)), 
                 dpi = 600
@@ -198,26 +202,24 @@ export_plot <- function(
               print(message)
             }
           }
-        } else {
+      } else {
             ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
             print("Tree plotted and saved as tree_plot_visualized.svg!")
-        }
-      } else {
-          ggsave(plot = plot, output, dpi = 600)
-          print(paste("Tree plotted and saved as", output))
       }
     } else {
-        print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
+          ggsave(plot = plot, output, dpi = 600)
+          print(paste("Tree plotted and saved as", output))
     }
-    
-    return(plot)
+  } else {
+        print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
   }
+    
+  return(plot)
 }
 
 
-#' print_internal_nodes
-#' This function generates a plot of the provided phylogenetic tree with node IDs displayed. Additionally, it offers the option
-#' to highlight specific tip labels that match a user-provided pattern.
+#' print_internal_nodes: This function generates a plot of the provided phylogenetic tree with node IDs displayed. 
+#'                       Additionally, it offers the option to highlight specific tip labels that match a user-provided pattern.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
 #' @param form Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight (Default: "rectangular").
@@ -225,6 +227,7 @@ export_plot <- function(
 #' @param ... Pattern(s) for printing tip labels that match them.
 #' 
 #' @return A ggplot object representing the phylogenetic tree with node IDs and optional highlighted tip labels.
+#'         Used for identifying nodes for interest for extracting subtrees, flipping or labeling them in the visualize_tree function.
 #' 
 #' @examples
 #' \dontrun{
@@ -338,12 +341,12 @@ group_descendants <- function(tree, ...) {
 }
 
 #' extract_subtree
-#' Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor nodes while preserving branch lengths and bootstrap values.
+#' Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor leaves or 
+#' the subtree that contains a user-provided list of tip labels,  while preserving branch lengths and bootstrap values.
 #'
 #' @param tree A phylogenetic tree object of class 'phylo' or 'treedata'.
-#' @param tip1 The label or pattern of the first tip node.
-#' @param tip2 The label or pattern of the second tip node.
-#' @param branch_length Logical. If TRUE, preserve branch lengths in the extracted subtree; if FALSE, create a cladogram with equal branch lengths.
+#' @param tip1,tip2 The labels or pattern of the two anchor tips.
+#' @param taxon_list User-provided list of tip labels, the subtree which contains them will be extracted.
 #'
 #' @return A treedata object representing the extracted subtree with preserved branch lengths and bootstrap values.
 #'
@@ -365,8 +368,7 @@ group_descendants <- function(tree, ...) {
 #' @importFrom dplyr left_join select mutate as_tibble
 #' @importFrom ape extract.clade
 #' @importFrom phytools findMRCA 
-#' @importFrom treeio treeio::as.treedata read.newick
-#' @importFrom TreeTools
+#' @importFrom treeio as.treedata read.newick
 #'
 #' @export
 
@@ -469,13 +471,15 @@ extract_subtree <- function(
 #' @param tree A phylogenetic tree object, typically of class 'phylo' from the ape package,
 #'        or a file path to a tree file in Newick format that can be read into such an object.
 #' @param highlight_nodes An associative vector where names are group labels and values are
-#'        node IDs indicating the nodes to be highlighted on the tree.
+#'        node IDs indicating the nodes and their descendants to be highlighted on the tree.
 #' @param colors An associative vector where names are group labels and values are colors
 #'        for the corresponding groups defined in `highlight_nodes`. If not provided,
 #'        random colors will be assigned to each group.
 #' @param form A character string specifying the layout of the tree. Common values include
 #'        "rectangular", "circular", and others supported by ggtree.
-#' @param name A character string specifying the name for the highlighted plot. This parameter
+#' @param tip_fill_color Fill color for the tip label symbols. Default: lightgrey
+#' @param tip_border_color Border color for the tip label symbols. Default: black
+#' @param legend_name A character string specifying the legend name for the highlighted plot. This parameter
 #'        is optional and primarily used for labeling within complex workflows.
 #' @param legend_position Position of the legend in the plot ("right", "left", "top", "bottom").
 #' @param legend_text_position Horizontal alignment of the text within the legend ("left" or "right").
@@ -488,8 +492,6 @@ extract_subtree <- function(
 #' @param legend_spacing_y Vertical spacing between legend items, specified in cm.
 #' @param legend_key_width Width of the keys in the legend, specified in cm.
 #' @param legend_title_hjust Horizontal justification of the legend title (0 to 1).
-#' @param tip_fill_color Fill color for the tip symbols.
-#' @param tip_border_color Border color for the tip symbols.
 #' @param save Logical; if TRUE, the plot will be saved to the file specified in `output`.
 #' @param output The filename where the plot will be saved if `save` is TRUE.
 #'
@@ -597,25 +599,29 @@ highlight_tree <- function(
 
 #' visualize_tree: Visualize Phylogenetic Tree with Various Customizable Features
 #'
-#' This function provides comprehensive options for visualizing a phylogenetic tree, allowing for
-#' customizations such as displaying bootstrap values, tip labels, and clade labels. It supports
-#' various tree layouts and interactive plotting with plotly.
+#' Main tree visualization function of the package, which provides comprehensive options 
+#' for visualizing a phylogenetic tree, allowing for customizations such as 
+#' displaying bootstrap values, tip labels as text and shape with different colors based on user-provided mappings, 
+#' flipping nodes and label user-specified clades. It supports various tree layouts.
 #'
 #' @param tree A phylogenetic tree in Newick format, treedata, or phylo class object.
 #' @param form The layout of the tree, with options including "rectangular", "circular",
 #'        "roundrect", "slanted", "ellipse", "fan", "equal_angle", and "daylight". Default is "rectangular".
 #' @param flip_nodes Logical; whether to flip the tree at specified nodes.
-#' @param node1 The ID of the first node to consider flipping.
-#' @param node2 The ID of the second node to consider flipping.
-#' @param tiplabels Logical; whether to print tip labels on the tree.
-#' @param pattern_id A pattern used to match and selectively print tip labels.
-#' @param color A vector specifying colors for tip labels based on taxa or other criteria.
-#' @param shape A vector specifying shapes for tip labels based on taxa or other criteria.
-#' @param taxon_group_separator A separator string for grouping taxon IDs when generating color
-#'        and shape mappings. If NULL, mappings are not generated.
+#' @param node1,node2 The ID of the two nodes to flip based on their most common recent ancestor (MRCA)
+#' @param tiplabels Logical; whether to print tip labels on the tree. Default: FALSE.
+#' @param pattern_id A pattern used to match and selectively print tip labels as text.
+#' @param tip_label_size Numeric specifying the size of the tip labels.
+#' @param tip_label_color Color for the tip labels, default is black.
+#' @param taxon_group_separator A separator string for splitting taxon IDs to generate color
+#'        and shape mappings. If NULL, mappings are generated based on the whole taxon ID string. 
+#' @param color A vector specifying color mappings for tip label shapes based on the taxon ID. 
+#'              Is different to tip_label_color, to allow for a user to provide colors for both text and shape mappings.
+#' @param shape A vector specifying ggstar starshapes for tip labels based on the taxon ID. 
+#' @param tip_shape_size Numeric specifying the size of the ggstar starshapes representing tip labels.
 #' @param legend_position The position of the legend on the plot ("right" by default).
 #' @param legend_text_position The position of the text in the legend ("right" by default).
-#' @param legend_orientation The orientation of the legend, either "horizontal" or "vertical".
+#' @param legend_orientation The orientation of the legend, either "horizontal" or "vertical" (default).
 #' @param legend_key_size Size of the keys in the legend, in cm.
 #' @param legend_font The font family for the legend text.
 #' @param legend_fontsize The size of the font in the legend, in points.
@@ -625,25 +631,20 @@ highlight_tree <- function(
 #' @param legend_key_width The width of the legend keys, in cm.
 #' @param legend_title_hjust Horizontal justification of the legend title (0 to 1).
 #' @param legend_name The name to be displayed as the legend title.
-#' @param tip_label_size Numeric specifying the size of the tip labels.
-#' @param tip_shape_size Numeric specifying the size of the tip shapes.
-#' @param tip_label_color Color for the tip labels, default is black.
 #' @param bootstrap_numbers Logical; whether to display bootstrap values on branches.
 #' @param bootstrap_number_nudge_y Numeric value controlling the vertical offset of bootstrap numbers.
 #' @param bootstrap_circles Logical; whether to display bootstrap values as circles at nodes.
 #' @param bootstrap_legend Logical; whether to display a legend for bootstrap values if displayed as circles.
 #' @param bootstrap_circle_size Numeric specifying the size of the bootstrap circles.
-#' @param branch_length Logical indicating whether branch lengths should be shown.
+#' @param branch_length Logical indicating whether branch lengths should be shown or omitted. Default: TRUE
 #' @param clades A vector or list specifying clades and their labels for highlighting.
 #' @param labeldist The distance for clade labels from their respective nodes.
 #' @param bardist The distance for clade label bars from their respective nodes.
 #' @param clade_label_size The size of the clade labels.
 #' @param save Logical; if TRUE, the plot will be saved using the specified output file name.
 #' @param output The file name or path where the plot will be saved if `save` is TRUE.
-#' @param interactive Logical; if TRUE, generates an interactive plot using Plotly.
-#' @param ... Additional arguments passed to other methods or plotting functions.
 #'
-#' @return A ggplot or ggplotly object depending on the `interactive` parameter, representing the visualized tree.
+#' @return A ggplot object representing the visualized tree.
 #'
 #' @examples
 #' \dontrun{
@@ -656,10 +657,9 @@ highlight_tree <- function(
 #'                tiplabels = TRUE, pattern_id = "Species")
 #' }
 #'
-#' @seealso \link[ggtree]{ggtree}, \link[ggplot2]{geom_point}, \link[plotly]{plotly}
+#' @seealso \link[ggtree]{ggtree}, \link[ggplot2]{geom_point}
 #' @importFrom ggplot2 ggplot aes geom_point scale_fill_manual theme
 #' @importFrom ggtree ggtree geom_tiplab geom_nodelab
-#' @importFrom plotly plot_ly
 #' @export
 
 
@@ -753,8 +753,8 @@ visualize_tree <- function(
         nudge_y = bootstrap_number_nudge_y,
         size = node_label_size
       )
-      
       print("Bootstrap values displayed as labels.")
+      
      } else if (bootstrap_circles == TRUE) {
         plot <- plot + geom_point(
           aes(size = support),
@@ -762,12 +762,14 @@ visualize_tree <- function(
           fill = 'gray',
           alpha = 0.6
         ) + scale_size_continuous(range = c(1, bootstrap_circle_size))
-        
         print("Bootstrap values displayed as circles.")
+        
      } else if ( bootstrap_numbers == TRUE && bootstrap_circles == TRUE ) {
         stop("Please select either bootstrap_numbers or bootstrap_circles.")
+       
      } else {
-       message("Bootstrap values will not be printed.")
+        message("Bootstrap values will not be printed.")
+       
      } 
     
   } else {
@@ -865,7 +867,7 @@ visualize_tree <- function(
         
         if (!is.null(shape)) {
           if (tiplabels == TRUE) {
-            warning("The tip labels option can be used only if tip shape mappings are NOT provided. Tip labels will be converted to FALSE, and will not be printed.")
+            warning("If both tip labels and shapes are enabled, shape mapping will override the text tip labels provided." )
           }
           
           missing_taxa_shape <- setdiff(unique(sapply(taxa_dict, function(entry) entry$group)), names(shape))
