@@ -46,7 +46,8 @@ dependencies <- c(
   "TreeTools",
   "ggstar",
   "ggtree",
-  "dplyr"
+  "dplyr",
+  "ggplot2"
 )
 
 .load_packages(dependencies)
@@ -487,7 +488,7 @@ extract_subtree <- function(
 #' @param legend_key_size Size of the legend keys, specified in cm.
 #' @param legend_font Font family for the text in the legend.
 #' @param legend_fontsize Size of the text in the legend, specified in points.
-#' @param legend_font_bold Boolean indicating whether the text in the legend should be bold.
+#' @param legend_font_face Boolean indicating whether the text in the legend should be bold.
 #' @param legend_spacing_x Horizontal spacing between legend items, specified in cm.
 #' @param legend_spacing_y Vertical spacing between legend items, specified in cm.
 #' @param legend_key_width Width of the keys in the legend, specified in cm.
@@ -527,7 +528,7 @@ highlight_tree <- function(
     legend_key_size = 0.1,
     legend_font = "Arial",
     legend_fontsize = 11,
-    legend_font_bold = "bold",
+    legend_font_face = "bold",
     legend_spacing_x = 0.5,
     legend_spacing_y = 0.5,
     legend_key_width = 1,
@@ -546,8 +547,7 @@ highlight_tree <- function(
   
   plot <- ggtree(tree_obj, layout = form) +
     geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) +
-    scale_starshape_identity() + 
-    scale_fill_identity()
+    scale_starshape_identity() 
   
   # Create a data frame for highlighting
   if (is.vector(highlight_nodes)) {
@@ -580,7 +580,7 @@ highlight_tree <- function(
     ) + 
     theme(
       legend.direction = legend_orientation,
-      legend.text = element_text(face = legend_font_bold, family = legend_font, size = legend_fontsize, color = "black"),
+      legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
       legend.key.size = unit(legend_key_size, "cm"),
       legend.spacing.x = unit(legend_spacing_x, "cm"),
       legend.spacing.y = unit(legend_spacing_y, "cm"),
@@ -625,7 +625,7 @@ highlight_tree <- function(
 #' @param legend_key_size Size of the keys in the legend, in cm.
 #' @param legend_font The font family for the legend text.
 #' @param legend_fontsize The size of the font in the legend, in points.
-#' @param legend_font_bold Whether the font in the legend should be bold ("bold" or normal).
+#' @param legend_font_face Whether the font in the legend should be bold ("bold" or normal).
 #' @param legend_spacing_x Horizontal spacing in the legend, in cm.
 #' @param legend_spacing_y Vertical spacing in the legend, in cm.
 #' @param legend_key_width The width of the legend keys, in cm.
@@ -679,7 +679,7 @@ visualize_tree <- function(
     legend_key_size = 0.1,
     legend_font = "Arial",
     legend_fontsize = 11,
-    legend_font_bold = "bold",
+    legend_font_face = "bold",
     legend_spacing_x = 0.5,
     legend_spacing_y = 0.5,
     legend_key_width = 1,
@@ -908,7 +908,7 @@ visualize_tree <- function(
             scale_fill_identity( 
               guide = guide_legend(theme = theme(
                 legend.direction = legend_orientation,
-                legend.text = element_text(face = legend_font_bold, family = legend_font, size = legend_fontsize, color = "black"),
+                legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
                 legend.key.size = unit(legend_key_size, "cm"),
                 legend.spacing.x = unit(legend_spacing_x, "cm"),
                 legend.spacing.y = unit(legend_spacing_y, "cm"),
@@ -921,7 +921,7 @@ visualize_tree <- function(
             scale_starshape_identity( 
               guide = guide_legend(theme = theme(
                 legend.direction = legend_orientation,
-                legend.text = element_text(face = legend_font_bold, family = legend_font, size = legend_fontsize, color = "black"),
+                legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
                 legend.key.size = unit(legend_key_size, "cm"),
                 legend.spacing.x = unit(legend_spacing_x, "cm"),
                 legend.spacing.y = unit(legend_spacing_y, "cm"),
@@ -947,7 +947,7 @@ visualize_tree <- function(
               scale_fill_identity( 
                 guide = guide_legend(theme = theme(
                   legend.direction = legend_orientation,
-                  legend.text = element_text(face = legend_font_bold, family = legend_font, size = legend_fontsize, color = "black"),
+                  legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
                   legend.key.size = unit(legend_key_size, "cm"),
                   legend.spacing.x = unit(legend_spacing_x, "cm"),
                   legend.spacing.y = unit(legend_spacing_y, "cm"),
@@ -973,7 +973,7 @@ visualize_tree <- function(
                 scale_starshape_identity(
                   guide = guide_legend(theme = theme(
                     legend.direction = legend_orientation,
-                    legend.text = element_text(face = legend_font_bold, family = legend_font, size = legend_fontsize, color = "black"),
+                    legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
                     legend.key.size = unit(legend_key_size, "cm"),
                     legend.spacing.x = unit(legend_spacing_x, "cm"),
                     legend.spacing.y = unit(legend_spacing_y, "cm"),

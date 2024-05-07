@@ -13,7 +13,7 @@ highlight_tree(
   legend_key_size = 0.1,
   legend_font = "Arial",
   legend_fontsize = 11,
-  legend_font_bold = "bold",
+  legend_font_face = "bold",
   legend_spacing_x = 0.5,
   legend_spacing_y = 0.5,
   legend_key_width = 1,
@@ -47,7 +47,7 @@ node IDs indicating the nodes and their descendants to be highlighted on the tre
 
 \item{legend_fontsize}{Size of the text in the legend, specified in points.}
 
-\item{legend_font_bold}{Boolean indicating whether the text in the legend should be bold.}
+\item{legend_font_face}{Boolean indicating whether the text in the legend should be bold.}
 
 \item{legend_spacing_x}{Horizontal spacing between legend items, specified in cm.}
 

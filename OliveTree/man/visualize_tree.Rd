@@ -21,7 +21,7 @@ visualize_tree(
   legend_key_size = 0.1,
   legend_font = "Arial",
   legend_fontsize = 11,
-  legend_font_bold = "bold",
+  legend_font_face = "bold",
   legend_spacing_x = 0.5,
   legend_spacing_y = 0.5,
   legend_key_width = 1,
@@ -80,7 +80,7 @@ and shape mappings. If NULL, mappings are generated based on the whole taxon ID 
 
 \item{legend_fontsize}{The size of the font in the legend, in points.}
 
-\item{legend_font_bold}{Whether the font in the legend should be bold ("bold" or normal).}
+\item{legend_font_face}{Whether the font in the legend should be bold ("bold" or normal).}
 
 \item{legend_spacing_x}{Horizontal spacing in the legend, in cm.}
 
