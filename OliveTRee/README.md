@@ -1,5 +1,4 @@
-# OliveTree
-R package for efficient tree manipulation and beautiful visualization based on ggtree, treeio and phytools.
+# OliveTRee: R package for efficient tree manipulation and beautiful visualization based on ggtree, treeio and phytools.
 
 Contains functions for:
 
@@ -14,4 +13,4 @@ Contains functions for:
 9. Visualizing trees with advanced features, including producing color and shape mappings for user-specified tip labels, isolating specific clades of tree and representing bootstrap support as colored circles at parent nodes of branches
 
 To load it run:
-source("OliveTree.R")
+source("OliveTRee.R")
