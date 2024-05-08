@@ -1,21 +1,15 @@
-#' Library of functions for advanced tree manipulation and visualization using ggtree, ape, phytools, and other related tools.
-#' @import treeio
-#' @import ape
-#' @import phytools
-#' @import tidytree
-#' @import ggstar
-#' @import ggtree
-#' @import dplyr
-#' @import BiocManager
-#' 
+
+# OliveTRee: R package for advanced tree manipulation and visualization by combining and extending the functionality of ggtree, ape, phytools and other related tools."
+
 #' @title .load_packages
-#' @description This function checks if a package is installed. If not, it installs the package using BiocManager if available, otherwise using install.packages.
-#' @param tools A character vector of package names to be checked and installed.
+#' @description 
+#' This function checks if a package is installed. If not, it installs the package using BiocManager if available, otherwise using install.packages. Then it loads it.
+#' 
+#' @param tools A vector or list of package names to be checked and installed.
 #' @return NULL
+#' 
 #' @export
 
-# Function to check if a package is installed, and if not, install it. 
-# Then load it in memory.
 
 .load_packages <- function(tools) {
   tmp <- as.data.frame(installed.packages()) 
@@ -52,22 +46,30 @@ dependencies <- c(
 
 .load_packages(dependencies)
 
-#==================================== TREE MANIPULATION FUNCTIONS ====================================#
 
-#' read_tree
+#==================================== Reading, Loading and Exporting Trees ====================================#
+
+#' @title read_tree 
+#' @description 
 #' Read a phylogenetic tree from a file with auto-detection of bootstrap values.
 #'
 #' @param input_file Path to the file containing the phylogenetic tree. Input tree can be in newick or nexus format.
 #' 
 #' @return A tree data object representing the phylogenetic tree.
+#' @examples
+#' Read a sample tree from newick file
+#'  tree <- read_tree("path/to/tree.nwk")
+#'  
+#' Read a sample tree from nexus file
+#'  tree <- read_tree("path/to/tree.nexus")
 #' 
 #' @export
 
-# Function to read and preprocess a tree
+
 read_tree <- function(input_file) {
   if (grepl("\\.(newick|nwk|tre|tree)$", tolower(input_file))) {
     t <- phytools::read.newick(input_file)
-  } else if (grepl("\\.(nxs|nex)$", tolower(input_file))) {
+  } else if (grepl("\\.(nexus|nxs|nex)$", tolower(input_file))) {
       t <- ape::read.nexus(input_file)
   } else {
       stop("Unsupported file format.")
@@ -83,15 +85,21 @@ read_tree <- function(input_file) {
 }
 
 
-#' .load_tree_object
-#' Load phylogenetic tree as treedata object
+#' @title .load_tree_object
+#' @description 
+#' Load phylogenetic tree as treedata object.
 #' 
 #' @param tree An object representing the phylogenetic tree, providing a single tree entrypoint used in the whole package. 
-#'             Makes use of the read_tree function.
-#'
-#' If no file path is provided, the user will be prompted to provide an input phylogenetic tree through Rstudio's graphical user interface (GUI).
+#'             Makes use of the read_tree function. 
+#'             If no file path is provided, the user will be prompted to provide an input phylogenetic tree through Rstudio's graphical user interface (GUI).
 #' 
 #' @return A tree data object representing the phylogenetic tree.
+#' 
+#' @examples
+#'  tree_obj <- .load_tree_obj("path/to/tree.nwk")
+#'  
+#'  # tree: 'phylo' or 'treedata' object or 'path/to/tree.nwk' or 'path/to/tree.nexus' files
+#'  tree_obj <- .load_tree_obj(tree)
 #' 
 #' @export
 
@@ -119,151 +127,203 @@ read_tree <- function(input_file) {
 }
 
 
-#' write_tree
-#' This function writes a tree in newick format, while preserving the bootstrap values.
+#' @title write_newick
+#' @description 
+#' Writes a tree in newick format, while preserving bootstrap support values (if present).
 #' 
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo', or a file.
-#' @param output Name of the output file. If no name, is provided it will use the tree object name with a '.nwk' suffix.
+#' @param output Name of the output file. If no output is specified, is provided it will use the tree object name with a '.nwk' suffix.
 #' 
-#' @return A ggplot object representing the phylogenetic tree with node IDs and optional highlighted tip labels.
+#' @return NULL
+#' 
+#' @examples
+#' Read a tree in nexus format
+#'   nx_tree <- read_tree(input_file = 'tree.nxs')
+#'   
+#' Write it in newick format
+#'   write_newick( tree = nx_tree, output = 'nx_tree.nwk' )
+#' 
+#' @export
+
+
+write_newick <- function(
+    tree, 
+    output = NULL
+) {
+  
+  tree_obj <- .load_tree_object(tree)
+  
+  if (!is.null(tree_obj@data)) {
+    
+    # Copy bootstrap values in the labels of the internal (non-Tip) nodes
+    phylo_data <- treeio::as.treedata(
+      left_join(
+        as_tibble(tree_obj@phylo),
+        as_tibble(tree_obj@data)
+      ) %>%
+        mutate(
+          isTip = ifelse(!is.na(label), TRUE, FALSE)
+        ) %>%
+        mutate(
+          label = ifelse(
+            isTip == FALSE,
+            as.character(support),
+            label
+          )
+        ) %>%
+        select(-support)
+      )
+  } else {
+     phylo_data <- tree_obj
+  }
+  
+  if (!is.null(output)) {
+    ape::write.tree(phy = phylo_data@phylo, output)
+  } else {
+      ape::write.tree(phy = phylo_data@phylo, paste0(tree, ".nwk"))
+  }
+}
+
+
+#' @title export_plot
+#' @description Function to export plot with provided options
+#' 
+#' @param plot A ggtree plot object.
+#' @param output Name of the output file. 
+#' @param format Format of the output file. Default: 'svg'
+#' @param dpi Number of DPIs in output file. Default: 600
+#' 
+#' @return A ggplot object representing the phylogenetic tree and optionally an output svg file with this phylogenetic tree.
 #' 
 #' @examples
 #' \dontrun{
-#' # Write a sample tree
-#' write_tree( tree = tree_obj, output = 'tree_obj.nwk' )
+#'   # Export a phylogenetic tree object
+#'   export_plot (plot, output = "tree_plot_visualized.svg")
 #' }
 #' @export
 
-write_tree <- function(tree, output = "output_tree.nwk") {
-  tree_obj <- .load_tree_object(tree)
-  
-  # Copy bootstrap values in the labels of the internal (non-Tip) nodes
-  phylo_data <- treeio::as.treedata(
-    left_join(
-      as_tibble(tree_obj@phylo),
-      as_tibble(tree_obj@data)
-    ) %>%
-      mutate(
-        isTip = ifelse(!is.na(label), TRUE, FALSE)
-      ) %>%
-      mutate(
-        label = ifelse(
-          isTip == FALSE,
-          as.character(support),
-          label
-        )
-      ) %>%
-      select(-support)
-  )
-  
-  ape::write.tree(phy = phylo_data@phylo, output)
-}
-
-#' export_plot: Function to export plot with provided options
-#' 
-#' 
-#' @param plot A ggtree plot object.
-#' @param save Option to save plot to output svg file. Default: True
-#' @param output Name of the output file. Default: 'tree_plot_visualized.svg'
-#' 
-#' @return A ggplot object representing the phylogenetic tree and optionally an output svg file with this phylogenetic tree.
-#'         Main plot exporting function of the package. 
-#' 
-#' @examples
-#' dontrun{
-#' # Export plot with option to save
-#' export_plot (plot, save = TRUE, output = "tree_plot_visualized.svg")
-#' }
-#' @export
 
 export_plot <- function(
     plot,
-    save = TRUE,
-    output = "tree_plot_visualized.svg"
+    output = NULL,
+    format = 'svg',
+    dpi = 600
 ) {
   
   if (!(is.null(output))) {
-    save == TRUE
+    ggsave(
+      plot = plot, 
+      sprintf(paste0("%s.",format), output), 
+      dpi = dpi
+    )
+    
+    message <- sprintf("Tree plotted and saved as %s.svg", plot)
+    message(message)
+    
+  } else {
+     message("Plot will not be saved! Provide an output = <OUTPUT_NAME> for saving the output plot.")
   }
   
-  # Export plot with provided options
-  if (save == TRUE) {
-    if (is.null(output)) {
-      if (typeof(tree) == "character") {
-        if (file.exists(tree)) {
-          if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
-              
-            ggsave(
-                plot = plot, 
-                sprintf( "%s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree)), 
-                dpi = 600
-              )
-              
-              message <- sprintf("Tree plotted and saved as %s_visualized.svg", sub(".newick|.nwk|.tre|.support|.nxs|.nex", "", tree))
-              print(message)
-            }
-          }
-      } else {
-            ggsave(plot = plot, "tree_plot_visualized.svg", dpi = 600)
-            print("Tree plotted and saved as tree_plot_visualized.svg!")
-      }
-    } else {
-          ggsave(plot = plot, output, dpi = 600)
-          print(paste("Tree plotted and saved as", output))
-    }
-  } else {
-        print("Plot will not be saved! Use the options save = TRUE and output = <OUTPUT_NAME> for saving the output plot.")
-  }
-    
   return(plot)
 }
 
 
-#' print_internal_nodes: This function generates a plot of the provided phylogenetic tree with node IDs displayed. 
-#'                       Additionally, it offers the option to highlight specific tip labels that match a user-provided pattern.
+#==================================== Manipulating Trees ====================================#
+
+
+#' @title bootstrap_collapse
+#' @description Collapse nodes in a phylogenetic tree where the bootstrap support is below a user-specified cutoff.
+#'              If bootstrap support is in 0-1 scale, is converted at the 1-100 scale.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
-#' @param form Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight (Default: "rectangular").
-#' @param node_id_color Color of the printed node ids. Default is "darkred".
-#' @param ... Pattern(s) for printing tip labels that match them.
+#' @param cutoff The threshold value for collapsing nodes based on bootstrap support. Default: 50
+#'
+#' @return A treedata object with collapsed branches where bootstrap support is less than the user-specified cutoff.
+#'
+#' @examples
+#' \dontrun{
+#'   # Load a sample tree
+#'   tree <- read_tree("path/to/tree.nwk")
+#'
+#'   # Collapse nodes with bootstrap support less than 0.7
+#'   collapsed_tree <- bootstrap_collapse(tree, cutoff = 0.7)
+#' }
+#'
+#' @export
+
+bootstrap_collapse <- function(tree, cutoff = 50) {
+  tree_obj <- .load_tree_object(tree)
+  
+  if (all(tree_obj@data$support <= 1)) {
+    message("Bootstrap values are in scale 0-1. Will be multiplied by 100 to be transferred to a scale of 1-100.")
+    
+    tree_obj@data$support <- sapply(
+      tree_obj@data$support, function (bootstrap) {
+        bootstrap <- bootstrap*100
+        return(data.frame(bootstrap))
+    })
+  } 
+  
+  collapsed_tree <- as.treedata(
+    as.polytomy(
+      tree_obj, 
+      feature = 'support', 
+      fun = function(x) as.numeric(x) < cutoff
+    )
+  )
+  
+  return(collapsed_tree)
+}
+
+
+
+#' @title print_internal_nodes
+#' @description This function generates a plot of the provided phylogenetic tree with node labels displayed. 
+#'              Optional printing of tip labels matching a user-provided pattern.
+#'
+#' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
+#' @param form Layout of the tree based on ggtree options. Layout can be rectangular, circular, roundrect, slanted, ellipse, fan, equal_angle, daylight. Default: "rectangular"
+#' @param node_id_color Color of the printed node labels. Default: 'darkred'
+#' @param pattern Pattern or list of patterns for matching tip labels of interest. If pattern is NULL, then only node labels will be printed. Default: NULL
+#' @param tip_label_size Size of printed tip labels matching the user-specified pattern. Default: 2
 #' 
-#' @return A ggplot object representing the phylogenetic tree with node IDs and optional highlighted tip labels.
+#' @return A ggplot object representing the phylogenetic tree with node labels and optional highlighted tip labels.
 #'         Used for identifying nodes for interest for extracting subtrees, flipping or labeling them in the visualize_tree function.
 #' 
 #' @examples
 #' \dontrun{
-#' # Load a sample tree
-#' tree <- read_tree("path/to/tree.nwk")
+#'   # Load a sample tree
+#'   tree <- read_tree('tree.nwk')
 #'
-#' # Print the tree with node IDs and print tip labels matching "taxon_A"
-#' print_internal_nodes(tree, color = "darkred", "taxon_A")
+#'   # Print the tree with node labels and print tip labels matching "taxon_A"
+#'   print_internal_nodes(tree, color = 'darkred', pattern = 'taxon_A' )
 #' }
 #' 
 #' @export
 
+
 print_internal_nodes <- function(
     tree, 
     form = "circular", 
-    node_id_color = "red", 
+    node_id_color = "darkred", 
+    pattern = NULL,
     tip_label_size = 2, 
-    references = NULL,
-    save = TRUE,
-    output = "highlighted_tree.svg"
+    output = "node_with.svg"
 ) {
   
   tree_obj <- .load_tree_object(tree)
   
   # Create the base tree plot with node labels
   plot <- ggtree(tree_obj, layout = form) +
-          geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
+    geom_nodelab(aes(label = node), hjust = -0.1, color = node_id_color, size = 3)
   
-  if ( is.null(references) ) {
-    print("Only node IDs will be printed.")
+  if ( is.null(pattern) ) {
+    print("Only node labels will be printed.")
     return(plot)
   } else {
     matching_labels <- unlist(
-      sapply(references, function(reference) {
-        grep(reference, tree_obj@phylo$tip.label, value = TRUE, fixed = TRUE)
+      sapply(pattern, function(patterns) {
+        grep(patterns, tree_obj@phylo$tip.label, value = TRUE, fixed = TRUE)
       }))
     
     matching_dict <- data.frame(
@@ -274,9 +334,13 @@ print_internal_nodes <- function(
     plot <- plot %<+% matching_dict
     
     plot <- plot + 
-      geom_tiplab(aes(label = ifelse(matching_flag == TRUE, label, NA), 
-                  fill =  sample(colors(), 1)), 
-                  size = tip_label_size, align.tip.label = TRUE)
+      geom_tiplab(
+        aes(
+          label = ifelse(matching_flag == TRUE, label, NA), 
+          fill = sample(colors(), 1)
+        ), 
+        size = tip_label_size, align.tip.label = TRUE
+      )
   }
   
   export_plot(
@@ -287,32 +351,9 @@ print_internal_nodes <- function(
   
 }
 
-#' bootstrap_collapse
-#' This function collapses nodes in a phylogenetic tree where the bootstrap support is below a specified cutoff.
-#'
-#' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
-#' @param cutoff The threshold value for collapsing nodes based on bootstrap support. Defaults to 0.5.
-#'
-#' @return A 'phylo' object with collapsed branches with bootstrap less than the provided cutoff.
-#'
-#' @examples
-#' \dontrun{
-#' # Load a sample tree
-#' tree <- read_tree("path/to/tree.nwk")
-#'
-#' # Collapse nodes with bootstrap support less than 0.7
-#' collapsed_tree <- bootstrap_collapse(tree, 0.7)
-#' }
-#'
-#' @export
 
-bootstrap_collapse <- function(tree, cutoff = 0.5) {
-  tree_obj <- .load_tree_object(tree)
-  return(as.polytomy(tree_obj, feature = 'support', fun = function(x) as.numeric(x) < cutoff))
-}
-
-#' group_descendants
-#'
+#' @title group_descendants
+#' @description
 #' Group all descendant branches of specified node(s) in a phylogenetic tree.
 #'
 #' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
@@ -334,12 +375,13 @@ bootstrap_collapse <- function(tree, cutoff = 0.5) {
 #'
 #' @export
 
-# Function to group all descendant branches of node(s)
+
 group_descendants <- function(tree, ...) {
   tree_obj <- .load_tree_object(tree)
   nodes <- list(...)
   return(tidytree::groupClade(tree_obj, .node = nodes))
 }
+
 
 #' extract_subtree
 #' Function to extract a subtree by finding the MRCA (Most Recent Common Ancestor) of two anchor leaves or 
@@ -374,6 +416,7 @@ group_descendants <- function(tree, ...) {
 #' @export
 
 # Function to extract a subtree by finding the MRCA of two anchor nodes while preserving branch lengths and bootstrap values 
+
 
 extract_subtree <- function(
     tree, 
@@ -461,7 +504,8 @@ extract_subtree <- function(
   }
 }
 
-# ==================================== TREE VISUALIZATION FUNCTIONS ====================================#
+
+# ==================================== Visualizing Trees ====================================#
 
 #' highlight_tree: Highlight Nodes and Descendant Leaves on a Phylogenetic Tree
 #'
@@ -472,7 +516,7 @@ extract_subtree <- function(
 #' @param tree A phylogenetic tree object, typically of class 'phylo' from the ape package,
 #'        or a file path to a tree file in Newick format that can be read into such an object.
 #' @param highlight_nodes An associative vector where names are group labels and values are
-#'        node IDs indicating the nodes and their descendants to be highlighted on the tree.
+#'        node labels indicating the nodes and their descendants to be highlighted on the tree.
 #' @param colors An associative vector where names are group labels and values are colors
 #'        for the corresponding groups defined in `highlight_nodes`. If not provided,
 #'        random colors will be assigned to each group.
@@ -518,7 +562,7 @@ extract_subtree <- function(
 #' @importFrom treeio read.newick
 #' @export
 
-# Function to highlight nodes on a tree
+
 highlight_tree <- function(
     tree,
     highlight_nodes,
@@ -717,7 +761,7 @@ visualize_tree <- function(
     if ( !is.null(node1) || !is.null(node2) ) {
       plot <- ggtree::flip( ggtree(tree_obj, layout = form), node1, node2 )
     } else {
-        stop ("Please provide node IDs to flip. Find node IDs of interest using the print_internal_nodes( tree, references = c(taxon_pattern1, taxon_pattern1) ) function.")
+        stop ("Please provide node labels to flip. Find node labels of interest using the print_internal_nodes( tree, references = c(taxon_pattern1, taxon_pattern1) ) function.")
     }
   } else {
       plot <- ggtree(tree_obj, layout = form)
