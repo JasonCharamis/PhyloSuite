@@ -98,7 +98,7 @@ read_tree <- function(input_file) {
 #' @examples
 #'  tree_obj <- .load_tree_obj("path/to/tree.nwk")
 #'  
-#'  # tree: 'phylo' or 'treedata' object or 'path/to/tree.nwk' or 'path/to/tree.nexus' files
+#'  tree: 'phylo' or 'treedata' object or 'path/to/tree.nwk' or 'path/to/tree.nexus' files
 #'  tree_obj <- .load_tree_obj(tree)
 #' 
 #' @export
@@ -196,10 +196,9 @@ write_newick <- function(
 #' @return A ggplot object representing the phylogenetic tree and optionally an output svg file with this phylogenetic tree.
 #' 
 #' @examples
-#' \dontrun{
-#'   # Export a phylogenetic tree object
+#'   Export a phylogenetic tree object
 #'   export_plot (plot, output = "tree_plot_visualized.svg")
-#' }
+#' 
 #' @export
 
 
@@ -241,14 +240,13 @@ export_plot <- function(
 #' @return A treedata object with collapsed branches where bootstrap support is less than the user-specified cutoff.
 #'
 #' @examples
-#' \dontrun{
-#'   # Load a sample tree
+#' Load a sample tree
 #'   tree <- read_tree("path/to/tree.nwk")
 #'
-#'   # Collapse nodes with bootstrap support less than 0.7
+#' Collapse nodes with bootstrap support less than 0.7
 #'   collapsed_tree <- bootstrap_collapse(tree, cutoff = 0.7)
-#' }
-#'
+#' 
+#' 
 #' @export
 
 bootstrap_collapse <- function(tree, cutoff = 50) {

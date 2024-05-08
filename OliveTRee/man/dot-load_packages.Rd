@@ -2,7 +2,6 @@
 % Please edit documentation in R/OliveTRee.R
 \name{.load_packages}
 \alias{.load_packages}
-\title{OliveTRee}
 \usage{
 .load_packages(tools)
 }
