@@ -1,6 +1,6 @@
-Package: OliveTree
+Package: OliveTRee
 Type: Package
-Title: Package for Advanced Tree Visualization in R
+Title: OliveTRee
 Version: 0.2.0
 Date: 2024-05-08
 Author: Jason Charamis
@@ -19,7 +19,6 @@ Imports:
     dplyr,
     plotly,
     BiocManager,
-    ggsave
-    
+    ggsave    
 RoxygenNote: 7.3.1
 Roxygen: list(markdown = TRUE)
