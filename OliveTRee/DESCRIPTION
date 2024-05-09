@@ -1,6 +1,6 @@
 Package: OliveTRee
 Type: Package
-Title: OliveTRee: R package for advanced tree manipulation and visualization by combining and extending the functionality of ggtree, ape, phytools and other related tools.
+Title: R package for advanced tree manipulation and visualization by combining and extending the functionality of ggtree, ape, phytools and other related tools.
 Version: 0.2.0
 Date: 2024-05-08
 Author: Jason Charamis
