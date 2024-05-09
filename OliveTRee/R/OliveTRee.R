@@ -1012,7 +1012,8 @@ visualize_tree <- function(
                 subset = isTip,
                 fill = ifelse(!is.na(taxa_colors), s_color, NA),
                 starshape = ifelse(!is.na(taxa_shapes), s_shape, NA),
-              ), size = tip_shape_size
+              ), size = tip_shape_size,
+                color = "black"
            ) + 
             scale_fill_identity(
               labels = gsub("_", " ", tip_colors_df$taxa_colors),
@@ -1044,9 +1045,9 @@ visualize_tree <- function(
               mapping = aes(
                 subset = isTip,
                 fill = ifelse(!is.na(taxa_colors), s_color, NA)
-              ), 
+              ), color = "black",
               starshape = "circle",
-              size = tip_shape_size
+              size = tip_shape_size,
             ) + 
               scale_fill_identity( 
                 label = gsub("_", " ", tip_colors_df$taxa_colors),
@@ -1078,6 +1079,7 @@ visualize_tree <- function(
                 starshape = ifelse(!is.na(taxa_shapes), s_shape, NA)
               ), 
               fill = "black", 
+              color = "black",
               size = tip_shape_size
             ) + 
               scale_starshape_identity(
