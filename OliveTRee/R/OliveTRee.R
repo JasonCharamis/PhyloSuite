@@ -657,11 +657,9 @@ highlight_tree <- function(
 #' @param tiplabels Logical; whether to print tip labels on the tree. Default: FALSE.
 #' @param pattern_id A pattern used to match and selectively print tip labels as text.
 #' @param tip_label_size Numeric specifying the size of the tip labels.
-#' @param tip_label_color Color for the tip labels, default is black.
 #' @param taxon_group_separator A separator string for splitting tip labels to generate color
 #'        and shape mappings. If NULL, mappings are generated based on the whole tip label string. 
-#' @param color A vector specifying color mappings for tip label shapes based on the taxon ID. 
-#'              Is different to tip_label_color, to allow for a user to provide colors for both text and shape mappings.
+#' @param color A vector specifying color mappings for tip label text and/or shapes.
 #' @param shape A vector specifying ggstar starshapes for tip labels based on the taxon ID. 
 #' @param tip_shape_size Numeric specifying the size of the ggstar starshapes representing tip labels.
 #' @param legend_position The position of the legend on the plot ("right" by default).
@@ -733,7 +731,6 @@ visualize_tree <- function(
     legend_name = "",
     tip_shape_size = 3,
     tip_label_size = 2,
-    tip_label_color = "black",
     bootstrap_numbers = FALSE,
     bootstrap_number_nudge_x = 0,
     bootstrap_number_nudge_y = 0.2,
@@ -829,8 +826,8 @@ visualize_tree <- function(
       plot <- plot + 
         geom_tiplab(
           size = tip_label_size, 
-          color = ifelse(is.null(color), "black", color), 
-          align.tip.label = TRUE, 
+          color =  "black",
+          align.tip.label = TRUE
         )
     } else {
         matching_labels <- unlist(
@@ -840,28 +837,26 @@ visualize_tree <- function(
           })
         )
         
-        if (!is.null(names(tip_label_color))) {
-          tip_label_color <- tip_label_color
+        if (!is.null(names(color))) {
+          color <- color
         } else {
-            warning("tip_label_color has not been defined correctly.\nIt is an associative vector where names are taxon_names and values are colors.\n
-                  tip_label_color <- c(
+            warning(
+            "color has not been defined correctly.\nIt is an associative vector where names are taxon_names and values are colors.\n
+             color <- c(
                   'taxonA' = 'red',
                   'taxonB' = 'green'
-                  )")
+             )"
+            )
         }
         
         if (length(matching_labels) > 0) {
           matching_dict <- data.frame(
             label = matching_labels,
             color = ifelse(
-              !is.na(tip_label_color[matching_labels]) && !is.null(names(tip_label_color)), 
-              tip_label_color[matching_labels], 
-              
-              ifelse(!is.na(tip_label_color[matching_labels])) (
-                tip_label_color,
-                "black" 
+              !is.na(color[matching_labels]), 
+              color[matching_labels], 
+              "black" 
               )
-            )
           , matching_flag = TRUE
           )
           
@@ -878,23 +873,24 @@ visualize_tree <- function(
               align.tip.label = TRUE
             ) + scale_color_identity()
           
-        if (length(pattern_id) < 10 ) {
-          cat("Printing phylogenetic tree plot with tip labels matching", pattern_id, "!\n")
-        } else {
-            print("Printing phylogenetic tree plot with >10 tip label patterns!")
-        }
+          if (length(pattern_id) < 10 ) {
+            cat("Printing phylogenetic tree plot with tip labels matching", pattern_id, "!\n")
+          } else {
+              print("Printing phylogenetic tree plot with >10 tip label patterns!")
+          }
         
       } else {
           message( cat("Provided", pattern_id, "was not found among tip labels! Printing phylogenetic tree plot without tip labels!") )
       }
     }
   } else { 
-      if (!is.null(pattern_id) || !is.null(tip_label_color)) {
+      if (!is.null(pattern_id) || !is.null(color)) {
         stop ("Please enable tip label printing with tiplabels = TRUE.")
       } else {
           print ("Printing phylogenetic tree plot without tip labels!")
     }
   }
+  
   
   # Visualize phylogenetic tree with color and shape mappings, and an option to print selected taxa as tip labels
   
@@ -1006,7 +1002,7 @@ visualize_tree <- function(
           
           # Join data frames to create a unique mapping tibble
           plot <- plot %<+% tip_mapping_df 
-          
+
           plot <- plot + geom_star(
               mapping = aes( 
                 subset = isTip,
@@ -1016,6 +1012,7 @@ visualize_tree <- function(
                 color = "black"
            ) + 
             scale_fill_identity(
+              breaks = tip_colors_df$s_color,
               labels = gsub("_", " ", tip_colors_df$taxa_colors),
               name = legend_name,
               guide = guide_legend(
@@ -1050,18 +1047,19 @@ visualize_tree <- function(
               size = tip_shape_size,
             ) + 
               scale_fill_identity( 
-                label = gsub("_", " ", tip_colors_df$taxa_colors),
+                breaks = tip_colors_df$s_color,
+                labels = gsub("_", " ", tip_colors_df$taxa_colors),
                 name = legend_name,
                 
                 guide = guide_legend(
                     theme = theme(
-                    legend.direction = legend_orientation,
-                    legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
-                    legend.key.size = unit(legend_key_size, "cm"),
-                    legend.spacing.x = unit(legend_spacing_x, "cm"),
-                    legend.spacing.y = unit(legend_spacing_y, "cm"),
-                    legend.key.width = unit(legend_key_width, "cm"), 
-                    legend.title = element_text(hjust = legend_title_hjust)
+                      legend.direction = legend_orientation,
+                      legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
+                      legend.key.size = unit(legend_key_size, "cm"),
+                      legend.spacing.x = unit(legend_spacing_x, "cm"),
+                      legend.spacing.y = unit(legend_spacing_y, "cm"),
+                      legend.key.width = unit(legend_key_width, "cm"), 
+                      legend.title = element_text(hjust = legend_title_hjust)
                   )
                 ),
               )
@@ -1083,26 +1081,24 @@ visualize_tree <- function(
               size = tip_shape_size
             ) + 
               scale_starshape_identity(
-                labels = tip_shapes_df$label,
+                labels = gsub("_", " ", tip_shapes_df$taxa_shapes),
                 breaks = tip_shapes_df$s_shape,
                 name = legend_name,
                 guide = guide_legend(
                     theme = theme(
-                    legend.direction = legend_orientation,
-                    legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
-                    legend.key.size = unit(legend_key_size, "cm"),
-                    legend.spacing.x = unit(legend_spacing_x, "cm"),
-                    legend.spacing.y = unit(legend_spacing_y, "cm"),
-                    legend.key.width = unit(legend_key_width, "cm"), 
-                    legend.title = element_text(hjust = legend_title_hjust)
+                      legend.direction = legend_orientation,
+                      legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
+                      legend.key.size = unit(legend_key_size, "cm"),
+                      legend.spacing.x = unit(legend_spacing_x, "cm"),
+                      legend.spacing.y = unit(legend_spacing_y, "cm"),
+                      legend.key.width = unit(legend_key_width, "cm"), 
+                      legend.title = element_text(hjust = legend_title_hjust)
                   )
                 ),
               )
           }
         }
-    } else {
-      stop("None of the defined mapping tips was found in the tree.")
-    }
+      } 
   
   # Option to label specific clades of interest 
   if (!is.null(clades)) {
