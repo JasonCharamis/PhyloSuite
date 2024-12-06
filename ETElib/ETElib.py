@@ -171,7 +171,7 @@ def visualize_tree(tree, layout = "c", show = True):
                 species_n = node.name[0:3]
                 
             color_n = species_colors[species_n]               
-            species_face = TextFace(node.name,fgcolor=color_n, fsize=500,ftype="Arial")
+            species_face = TextFace(node.name,fgcolor=color_n, fsize=2000,ftype="Arial")
             node.add_face(species_face, column=1, position='branch-right')
 
         for threshold, col in thresholds.items(): # Bootstrap values in internal nodes represented as circles
@@ -187,11 +187,11 @@ def visualize_tree(tree, layout = "c", show = True):
         if color_b:
             node_style=NodeStyle()
             node_style["fgcolor"] = color_b
-            node_style["size"] = 500
+            node_style["size"] = 1000
             node.set_style(node_style)
 
 
-    t.render(tree+".svg", w=500, units="mm", tree_style=ts)
+    t.render(tree+".svg", w=1000, units="mm", tree_style=ts)
 
     if show == True:
         t.show(tree_style=ts)

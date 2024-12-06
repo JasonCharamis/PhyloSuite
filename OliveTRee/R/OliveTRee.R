@@ -10,7 +10,6 @@
 #' 
 #' @export
 
-
 .load_packages <- function(tools) {
   tmp <- as.data.frame(installed.packages()) 
   max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
@@ -46,6 +45,7 @@ dependencies <- c(
 
 .load_packages(dependencies)
 
+bioconductor_version <- ifelse(getRversion() >= "4.4", "3.19", ifelse(getRversion() >= "4.3", "3.18", "3.17"))
 
 #==================================== Reading, Loading and Exporting Trees ====================================#
 
@@ -59,27 +59,34 @@ dependencies <- c(
 #' @examples
 #' Read a sample tree from newick file
 #'  tree <- read_tree("path/to/tree.nwk")
-#'  
+#'
 #' Read a sample tree from nexus file
 #'  tree <- read_tree("path/to/tree.nexus")
-#' 
+#'
 #' @export
 
 
 read_tree <- function(input_file) {
   if (grepl("\\.(newick|nwk|tre|tree)$", tolower(input_file))) {
     t <- phytools::read.newick(input_file)
+    print (t)
   } else if (grepl("\\.(nexus|nxs|nex)$", tolower(input_file))) {
       t <- ape::read.nexus(input_file)
+  } else if (grepl("\\.(treefile)$", tolower(input_file))) {
+      t <- treeio::read.iqtree(input_file)
+      colnames(t@data)[colnames(t@data) == "UFboot"] <- "support"
+      return(t)
   } else {
       stop("Unsupported file format.")
   }
   
   # Check if the tree contains bootstrap values, and if it contains load them
-  if ( any(!is.null(t$node.label) && any(as.numeric(t$node.label) > 0)) == TRUE) {
-    to <- treeio::as.treedata(t, node.label = "support")
+  if ( any(is.numeric(t$node.label) || is.integer(t$node.label))) {
+    if (any(as.numeric(t$node.label) > 0) ) {
+      to <- treeio::as.treedata(t, node.label = "support")
+    } 
   } else {
-    to <- treeio::as.treedata(t)
+      to <- treeio::as.treedata(t)
   }
   return(to)
 }
@@ -111,7 +118,7 @@ read_tree <- function(input_file) {
     tree <- read_tree(file.choose())
   } else if (typeof(tree) == "character") {
     if (file.exists(tree)) {
-      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex", tree))) {
+      if (any(grepl(".newick|.nwk|.tre|.support|.nxs|.nex|treefile", tree))) {
         tree_obj <- read_tree(tree)
       }
     } else {
@@ -214,6 +221,8 @@ export_plot <- function(
     ggsave(
       plot = plot, 
       sprintf(paste0("%s.",format), output), 
+      width = 10, 
+      height = 10,
       dpi = dpi
     )
     
@@ -221,7 +230,7 @@ export_plot <- function(
     message(message)
     
   } else {
-     message("Plot will not be saved! Provide an output = <OUTPUT_NAME> for saving the output plot.")
+      message("Plot will not be saved! Provide an output = <OUTPUT_NAME> for saving the output plot.")
   }
   
   return(plot)
@@ -344,40 +353,119 @@ print_internal_nodes <- function(
   
   export_plot(
     plot = plot, 
-    save = save,
     output = output
   )
-  
 }
 
 
-#' @name group_descendants
-#' @description
-#' Group all descendant branches of specified node(s) in a phylogenetic tree.
-#'
-#' @param tree An object representing the phylogenetic tree. Should be of class 'treedata' or 'phylo'.
-#' @param node1 The first node for grouping descendants.
-#' @param node2 The second node for grouping descendants.
-#' @param node3 The third node for grouping descendants.
-#' @param node4 The fourth node for grouping descendants.
-#'
-#' @return A 'phylo' object with grouped descendants.
-#'
-#' @examples
+#' Group and Highlight Tree Descendants
 #' 
-#' Load a sample tree
-#'   tree <- read_tree("path/to/tree.nwk")
-#'
-#' Group all descendants of nodes 5, 8, and 10 in the tree
-#'   grouped_tree <- group_descendants(tree, 5, 8, 10)
+#' @description
+#' Creates a phylogenetic tree visualization with highlighted clades and their descendants
+#' 
+#' @param tree Phylogenetic tree object
+#' @param highlight_clades Named vector of node IDs to highlight
+#' @param colors Named vector of colors for each clade. If NULL, random colors are generated
+#' @param form Tree layout format (default: "circular")
+#' @param tiplabels Logical, whether to show tip labels (default: FALSE)
+#' @param tip_label_size Numeric, size of tip labels. Ignored if tiplabels=FALSE
+#' @param tip_fill_color Color for tip points when tiplabels=FALSE (default: "lightgrey")
+#' @param legend_position Position of legend (default: "right")
+#' @param legend_name Title for the legend (default: "")
+#' @param output Output file path. If NULL, returns plot object
+#' @param format Output file format (default: 'svg')
+#' @param dpi Resolution for output file (default: 600)
+#' 
+#' @return Plot object or exported file if output is specified
+#' 
+#' @import ggtree
+#' @import tidytree
+#' 
+#' @examples
+#' highlight_nodes <- c("CYP2" = 1063, "CYP3" = 1426)
+#' colors <- c("CYP2" = "gold", "CYP3" = "green")
+#' group_descendants(tree = tree, highlight_clades = highlight_nodes, colors = colors)
 #' 
 #' @export
 
+group_descendants <- function(
+  tree,
+  highlight_clades = NULL,
+  colors = NULL,
+  form = "circular",
+  tiplabels = FALSE,
+  tip_label_size = NULL,
+  tip_fill_color = "lightgrey",
+  legend_position = "right",
+  legend_name = "",
+  output = NULL,
+  format = 'svg',
+  dpi = 600
+) {
 
-group_descendants <- function(tree, ...) {
+  if (is.null(highlight_clades)) {
+    stop("No grouping information was provided.")
+  }
+    
+  if (is.null(colors)) {
+    colors <- setNames(sample(rainbow(length(highlight_clades)), length(highlight_clades)), 
+                      names(highlight_clades))
+  }
+  
   tree_obj <- .load_tree_object(tree)
-  nodes <- list(...)
-  return(tidytree::groupClade(tree_obj, .node = nodes))
+
+  # For each highlighted node, find all its descendants and group them
+  groups <- list()
+  
+  for(group_name in names(highlight_nodes)) {
+    node_id <- highlight_nodes[[group_name]]
+    descendants <- c(node_id, tidytree::offspring(tree_obj, node_id))
+    groups[[group_name]] <- descendants
+  }
+
+  # Create basic phylogenetic tree with tip labels or not
+  if (!tiplabels) {
+    plot <- ggtree(tree_obj, layout = form) +
+      geom_star(aes(subset = isTip, starshape = "circle"), 
+                fill = tip_fill_color, size = 0.8) +
+      scale_starshape_identity()
+
+  } else {
+    tip_label_size <- ifelse(is.null(tip_label_size), 1, tip_label_size)
+
+    plot <- ggtree(tree_obj, layout = form) +
+      geom_tiplab(
+        size = tip_label_size, 
+        color = "black",
+        align.tip.label = TRUE
+      )
+  }
+
+  # Create plot and apply groupings
+  plot <- ggtree::groupOTU(plot, groups)
+  
+  highlight <- data.frame(
+    Group = names(highlight_nodes),
+    Label = highlight_nodes,
+    Color = colors
+  )
+
+  # Add stylistic information
+  plot <- plot + 
+    aes(color=group) +
+    scale_fill_manual(
+      values = highlight$Color,
+      labels = gsub("_", " ", highlight$Group),
+      name = legend_name
+    ) + 
+    theme(legend.position = legend_position)
+
+  export_plot(
+      plot = plot, 
+      output = output,
+      format = format,
+      dpi = dpi 
+  )
 }
 
 
@@ -474,7 +562,7 @@ extract_subtree <- function(
   }
   
   if (!("support" %in% colnames(tree_obj@data))) {
-    return(subtree)
+     return(subtree)
   } else {
       # If node is NOT tip, add the labels in the bs_support column and make the labels NA - mapping according to new node numbering
       subtree_f <- treeio::as.treedata(subtree) %>%
@@ -497,7 +585,7 @@ extract_subtree <- function(
         support = as.numeric(subtree_f@extraInfo$bs_support)
       )
       return(subtree_f)
-  }
+ }
 }
 
 
@@ -566,6 +654,8 @@ highlight_tree <- function(
     highlight_nodes,
     colors = NULL,
     form = "circular",
+    tiplabels = FALSE,
+    tip_label_size = NULL,
     tip_fill_color = "lightgrey",
     tip_border_color = "white",
     legend_name = "",
@@ -587,10 +677,27 @@ highlight_tree <- function(
   
   tree_obj <- .load_tree_object(tree)
   
-  plot <- ggtree(tree_obj, layout = form) +
-    geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) +
-    scale_starshape_identity() 
-  
+  if (tiplabels == FALSE || tiplabels == F) {
+    if ( !is.null(tip_label_size) ) {
+      stop("This action is not permitted. Tip labels need to be enabled (tiplabels = TRUE)")
+    }
+
+    plot <- ggtree(tree_obj, layout = form) +
+      geom_star(aes(subset = isTip, starshape = "circle"), fill = "lightgrey", size = 0.8) +
+      scale_starshape_identity() 
+  } else {
+      if (is.null(tip_label_size)) {
+        tip_label_size = 1
+      }
+
+      plot <- ggtree(tree_obj, layout = form) + 
+        geom_tiplab(
+          size = tip_label_size,
+          color =  "black",
+          align.tip.label = TRUE
+        )
+  }
+
   # Create a data frame for highlighting
   if (is.vector(highlight_nodes)) {
     if (is.null(colors)) {
@@ -623,6 +730,7 @@ highlight_tree <- function(
         name = legend_name
     ) + 
     theme(
+      legend.position = legend_position,
       legend.direction = legend_orientation,
       legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
       legend.key.size = unit(legend_key_size, "cm"),
@@ -638,7 +746,6 @@ highlight_tree <- function(
     format = format,
     dpi = dpi
   )
-  
 }
 
 
@@ -717,12 +824,14 @@ visualize_tree <- function(
     color = NULL,
     shape = NULL,
     taxon_group_separator = "NULL",
-    legend_position = "right",
+    legend_position = "left",
     legend_text_position = "right",
     legend_orientation = "horizontal",
     legend_key_size = 0.1,
     legend_font = "Arial",
+    legend_title_fontsize = 12,
     legend_fontsize = 11,
+    legend_title_font_face = "bold",
     legend_font_face = "bold",
     legend_spacing_x = 0.5,
     legend_spacing_y = 0.5,
@@ -734,7 +843,8 @@ visualize_tree <- function(
     bootstrap_numbers = FALSE,
     bootstrap_number_nudge_x = 0,
     bootstrap_number_nudge_y = 0.2,
-    node_label_size = 3, 
+    node_label_size = 3,
+    nudge_x_label = 0.01,
     bootstrap_circles = FALSE,
     bootstrap_legend = FALSE,
     bootstrap_circle_size = 1.7,
@@ -747,24 +857,35 @@ visualize_tree <- function(
     format = 'svg',
     dpi = 600
 ) {
-  
+
   # Load tree with option to print branch length and/or flip nodes
   tree_obj <- .load_tree_object(tree)
-  
+
   # If option for branch length is not TRUE, make branch lengths NULL
   if (!(branch_length == TRUE | branch_length == T)) {
-    print("Option branch length is deactivated. As a result, the subtree will be extracted as a cladogram with equal branch lengths.")
+    print(
+      "Option branch length is deactivated. 
+       As a result, the subtree will be extracted as 
+       a cladogram with equal branch lengths."
+    )
     tree_obj@phylo$edge.length <- NULL
-  } 
-  
+  }
+
   if ( flip_nodes == TRUE ) {
     if ( !is.null(node1) || !is.null(node2) ) {
       plot <- ggtree::flip( ggtree(tree_obj, layout = form), node1, node2 )
     } else {
-        stop ("Please provide node labels to flip. Find node labels of interest using the print_internal_nodes( tree, references = c(taxon_pattern1, taxon_pattern1) ) function.")
+        stop(
+          "Please provide node labels to flip. 
+           Find node labels of interest using the 
+           print_internal_nodes( tree, references = c(taxon_pattern1, taxon_pattern1) ) 
+           function."
+          )
     }
   } else {
-      plot <- ggtree(tree_obj, layout = form)
+      plot <- ggtree(
+        tree_obj, layout = form
+      )
   }
 
   # Manipulate bootstrap values and control if and how to print them
@@ -827,7 +948,8 @@ visualize_tree <- function(
         geom_tiplab(
           size = tip_label_size, 
           color =  "black",
-          align.tip.label = TRUE
+          align.tip.label = TRUE,
+          nudge_x = nudge_x_label
         )
     } else {
         matching_labels <- unlist(
@@ -856,7 +978,7 @@ visualize_tree <- function(
               !is.na(color[matching_labels]), 
               color[matching_labels], 
               "black" 
-              )
+            )
           , matching_flag = TRUE
           )
           
@@ -870,7 +992,8 @@ visualize_tree <- function(
                 color = ifelse(matching_flag == TRUE, color, NA)
               ),
               size = tip_label_size, 
-              align.tip.label = TRUE
+              align.tip.label = TRUE,
+              nudge_x = nudge_x_label
             ) + scale_color_identity()
           
           if (length(pattern_id) < 10 ) {
@@ -884,7 +1007,7 @@ visualize_tree <- function(
       }
     }
   } else { 
-      if (!is.null(pattern_id) || !is.null(color)) {
+      if (!is.null(pattern_id)) {
         stop ("Please enable tip label printing with tiplabels = TRUE.")
       } else {
           print ("Printing phylogenetic tree plot without tip labels!")
@@ -900,7 +1023,7 @@ visualize_tree <- function(
     # Use the taxon group separator to generate mappings
     if ( !is.null(taxon_group_separator) ) {
       taxa_dict <- lapply(tree_obj@phylo$tip.label, function(label) {
-        list( tip_label = label, group = sub(paste0(taxon_group_separator,"_.*"), "", label)) 
+        list( tip_label = label, group = sub(paste0(taxon_group_separator,".*"), "", label)) 
       })
     } else {
       taxa_dict <- lapply(tree_obj@phylo$tip.label, function(label) {
@@ -924,7 +1047,13 @@ visualize_tree <- function(
         tip_colors_df <- data.frame(
           label = tip_labels,
           taxa_colors = taxa_names,
-          s_color = color[match(sapply(taxa_dict, function(entry) entry$group), names(color))]
+          s_color = color[
+            match(sapply(
+              taxa_dict, function(entry) 
+                entry$group
+              ), names(color)
+            )
+          ]
         )
       }
         
@@ -990,79 +1119,92 @@ visualize_tree <- function(
         }
         
         # Add ggtree aesthetics to plots based on the user-provided arguments
-        if ( !is.null(color) && !is.null(shape)) {
-          
-          # Merge color and shape mappings into a single dataframe to allow for mappings legend
-          tip_mapping_df <- inner_join(
-            tip_colors_df, 
-            tip_shapes_df, 
-            by = "label"
-          ) %>%
-          distinct()
-          
-          # Join data frames to create a unique mapping tibble
-          plot <- plot %<+% tip_mapping_df 
+      # Add ggtree aesthetics to plots based on the user-provided arguments
+      if (!is.null(color) && !is.null(shape)) {
+        
+        # Function to extract group from tip label
+        extract_group <- function(label) {
+          if (!is.null(taxon_group_separator)) {
+            parts <- strsplit(label, taxon_group_separator, fixed = TRUE)[[1]]
+            return(parts[1])
+          } else {
+            return(label)
+          }
+        }
 
-          plot <- plot + geom_star(
-              mapping = aes( 
-                subset = isTip,
-                fill = ifelse(!is.na(taxa_colors), s_color, NA),
-                starshape = ifelse(!is.na(taxa_shapes), s_shape, NA),
-              ), size = tip_shape_size,
-                color = "black"
-           ) + 
-            scale_fill_identity(
-              breaks = tip_colors_df$s_color,
-              labels = gsub("_", " ", tip_colors_df$taxa_colors),
-              name = legend_name,
-              guide = guide_legend(
-                
-                # Override the starshape aesthetics to combine the fill and starshape legends. 
-                # More on that problem here: https://stackoverflow.com/questions/74031326/merging-legend-of-2-graphical-layers-in-ggplot2-and-ggstar-with-geom-point-and-g
-                override.aes = list(starshape = tip_mapping_df$s_shape), 
-                
-                # Add options for legend graphics
-                theme = theme(
-                  legend.direction = legend_orientation,
-                  legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
-                  legend.key.size = unit(legend_key_size, "cm"),
-                  legend.spacing.x = unit(legend_spacing_x, "cm"),
-                  legend.spacing.y = unit(legend_spacing_y, "cm"),
-                  legend.key.width = unit(legend_key_width, "cm"), 
-                  legend.title = element_text(hjust = legend_title_hjust)
-                  )
-                ) 
-              ) + scale_starshape_identity(guide = "none")
-
-          } else if ( !is.null(color) && is.null(shape)) {
-            
-            plot <- plot %<+% tip_colors_df
-            
-            plot <- plot + geom_star(
-              mapping = aes(
-                subset = isTip,
-                fill = ifelse(!is.na(taxa_colors), s_color, NA)
-              ), color = "black",
-              starshape = "circle",
-              size = tip_shape_size,
-            ) + 
-              scale_fill_identity( 
-                breaks = tip_colors_df$s_color,
-                labels = gsub("_", " ", tip_colors_df$taxa_colors),
-                name = legend_name,
-                
-                guide = guide_legend(
-                    theme = theme(
-                      legend.direction = legend_orientation,
-                      legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
-                      legend.key.size = unit(legend_key_size, "cm"),
-                      legend.spacing.x = unit(legend_spacing_x, "cm"),
-                      legend.spacing.y = unit(legend_spacing_y, "cm"),
-                      legend.key.width = unit(legend_key_width, "cm"), 
-                      legend.title = element_text(hjust = legend_title_hjust)
-                  )
-                ),
+        # Merge color and shape mappings into a single dataframe to allow for mappings legend
+        tip_mapping_df <- data.frame(
+          label = tree_obj@phylo$tip.label,
+          taxa_group = sapply(tree_obj@phylo$tip.label, extract_group),
+          stringsAsFactors = FALSE
+        )
+        
+        tip_mapping_df$s_color <- color[tip_mapping_df$taxa_group]
+        tip_mapping_df$s_shape <- shape[tip_mapping_df$taxa_group]
+        
+        # Join data frames to create a unique mapping tibble
+        plot <- plot %<+% tip_mapping_df 
+        
+        plot <- plot + geom_star(
+          mapping = aes( 
+            subset = isTip,
+            fill = s_color,
+            starshape = s_shape
+          ), 
+          size = tip_shape_size,
+          color = "black"
+        ) + 
+          scale_fill_identity(
+            breaks = unique(tip_mapping_df$s_color[!is.na(tip_mapping_df$s_color)]),
+            labels = unique(tip_mapping_df$taxa_group[!is.na(tip_mapping_df$s_color)]),
+            name = legend_name,
+            guide = guide_legend(
+              override.aes = list(
+                starshape = unique(tip_mapping_df$s_shape[!is.na(tip_mapping_df$s_shape)])
+              ),
+              theme = theme(
+                legend.position = legend_position,
+                legend.direction = legend_orientation,
+                legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
+                legend.key.size = unit(legend_key_size, "cm"),
+                legend.spacing.x = unit(legend_spacing_x, "cm"),
+                legend.spacing.y = unit(legend_spacing_y, "cm"),
+                legend.key.width = unit(legend_key_width, "cm"), 
+                legend.title = element_text(face = legend_title_font_face, family = legend_font, size = legend_title_fontsize,  hjust = legend_title_hjust)
               )
+            ) 
+          ) + 
+          scale_starshape_identity(guide = "none")
+      
+      } else if ( !is.null(color) && is.null(shape)) {
+              plot <- plot %<+% tip_colors_df
+             
+              plot <- plot + geom_star(
+                mapping = aes(
+                  subset = isTip,
+                  fill = ifelse(!is.na(taxa_colors), s_color, NA)
+                ), color = "black",
+                starshape = "circle",
+                size = tip_shape_size,
+              ) + 
+                scale_fill_identity( 
+                  breaks = tip_colors_df$s_color,
+                  labels = gsub("_", " ", tip_colors_df$taxa_colors),
+                  name = legend_name,
+                  
+                  guide = guide_legend(
+                      theme = theme(
+                        legend.position = 'none',
+                        legend.direction = legend_orientation,
+                        legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
+                        legend.key.size = unit(legend_key_size, "cm"),
+                        legend.spacing.x = unit(legend_spacing_x, "cm"),
+                        legend.spacing.y = unit(legend_spacing_y, "cm"),
+                        legend.key.width = unit(legend_key_width, "cm"), 
+                        legend.title = element_text(face = legend_title_font_face, family = legend_font, size = legend_title_fontsize,  hjust = legend_title_hjust)
+                    )
+                  ),
+                )
             
           } else if ( is.null(color) && !is.null(shape)) {
             
@@ -1086,13 +1228,14 @@ visualize_tree <- function(
                 name = legend_name,
                 guide = guide_legend(
                     theme = theme(
+                      legend.position = legend_position,
                       legend.direction = legend_orientation,
                       legend.text = element_text(face = legend_font_face, family = legend_font, size = legend_fontsize, color = "black"),
                       legend.key.size = unit(legend_key_size, "cm"),
                       legend.spacing.x = unit(legend_spacing_x, "cm"),
                       legend.spacing.y = unit(legend_spacing_y, "cm"),
                       legend.key.width = unit(legend_key_width, "cm"), 
-                      legend.title = element_text(hjust = legend_title_hjust)
+                      legend.title = element_text(face = legend_title_font_face, family = legend_font, size = legend_title_fontsize,  hjust = legend_title_hjust)
                   )
                 ),
               )
@@ -1116,10 +1259,10 @@ visualize_tree <- function(
     }
   }
   
-  export_plot(
-    plot = plot, 
-    output = output,
-    format = format,
-    dpi = dpi 
-  )
+ export_plot(
+      plot = plot, 
+      output = output,
+      format = format,
+      dpi = dpi 
+    )
 }

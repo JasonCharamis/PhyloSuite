@@ -39,7 +39,15 @@ load_packages(dependencies)
 multipanel <- function ( horizontal = "T", ... ) {
   plots <- list(...)
   
-  if ( horizontal == "T") { # Arrange horizontally
+  plots <- lapply(plots, function(p) {
+      ggplotGrob(p)
+  })
+  
+  if (!all(sapply(plots, inherits, "grob"))) {
+    stop("All arguments must be grid objects (grobs)")
+  }
+  
+  if (any( horizontal == TRUE)) { # Arrange horizontally
     multi_panel_figure <- grid.arrange(grobs = plots, ncol = length(plots), nrow = 1)
   } else { # Arrange vertically
     multi_panel_figure <- grid.arrange(grobs = plots, nrow = length(plots), ncol = 1)
