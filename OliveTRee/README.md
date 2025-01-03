@@ -1,10 +1,10 @@
-# OliveTree: R package for efficient tree manipulation and beautiful visualization based on ggtree, treeio and phytools.
+# OliveTRee: R package for efficient tree manipulation and beautiful visualization based on ggtree, treeio and phytools.
 
 Advanced phylogenetic tree manipulation and visualization in R
 
 ## Overview
 
-OliveTree extends and unifies functionality from `ggtree`, `treeio`, `phytools`, and other phylogenetic tools to provide:
+OliveTRee extends and unifies functionality from `ggtree`, `treeio`, `phytools`, and other phylogenetic tools to provide:
 
 - Streamlined tree manipulation
 - Enhanced visualization capabilities
@@ -14,15 +14,15 @@ OliveTree extends and unifies functionality from `ggtree`, `treeio`, `phytools`,
 ## Installation
 
 ```R
-# Install dependencies first
+# Install dependencies
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install(c("ggtree", "treeio"))
 install.packages(c("ape", "phytools"))
 
-# Then source OliveTree
-source("OliveTree.R")
+# Then source OliveTRee
+source("OliveTRee.R")
 ```
 
 ## Key Features
@@ -70,24 +70,30 @@ tree <- read_tree("path/to/tree.nwk")
 visualize_tree(tree, form = "circular")
 
 # With bootstrap circles
-visualize_tree(tree, 
-              bootstrap_circles = TRUE,
-              bootstrap_circle_size = 2)
+visualize_tree(
+  tree, 
+  bootstrap_circles = TRUE,
+  bootstrap_circle_size = 2
+)
 ```
 
 ### Advanced Visualization
 
 ```R
 # Color and shape mapping
-visualize_tree(tree,
+visualize_tree(
+    tree,
     color = c("SpeciesA" = "red", "SpeciesB" = "blue"),
     shape = c("SpeciesA" = "star", "SpeciesB" = "circle"),
-    legend_name = "Species")
+    legend_name = "Species"
+)
 
 # Highlight clades
-visualize_tree(tree,
+visualize_tree(
+    tree,
     highlight_clades = c("CladeA" = 15, "CladeB" = 20),
-    highlight_colors = c("CladeA" = "pink", "CladeB" = "lightblue"))
+    highlight_colors = c("CladeA" = "pink", "CladeB" = "lightblue")
+)
 ```
 
 ### Tree Manipulation
@@ -97,7 +103,7 @@ visualize_tree(tree,
 subtree <- extract_subtree(tree, tip1 = "taxonA", tip2 = "taxonB")
 
 # Collapse low support branches
-collapsed_tree <- bootstrap_collapse(tree, cutoff = 70)
+tree_with_collapsed_nodes <- bootstrap_collapse(tree, cutoff = 70)
 
 # Print node IDs
 print_internal_nodes(tree, pattern = "taxonA")
@@ -117,14 +123,14 @@ print_internal_nodes(tree, pattern = "taxonA")
 
 ## Citation
 
-If you use OliveTree in your research, please cite:
+If you use OliveTRee in your research, please cite:
 
 ```
 @software{OliveTRee2024,
-  author = {Original Author},
+  author = {Jason Charamis},
   title = {OliveTRee: Advanced Phylogenetic Tree Manipulation and Visualization},
   year = {2024},
-  url = {https://github.com/username/olivetree}
+  url = {https://github.com/JasonCharamis/PhyloSuite/tree/main/OliveTRee}
 }
 ```
 
