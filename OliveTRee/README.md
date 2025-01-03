@@ -120,9 +120,9 @@ print_internal_nodes(tree, pattern = "taxonA")
 If you use OliveTree in your research, please cite:
 
 ```
-@software{olivetree2024,
+@software{OliveTRee2024,
   author = {Original Author},
-  title = {OliveTree: Advanced Phylogenetic Tree Manipulation and Visualization},
+  title = {OliveTRee: Advanced Phylogenetic Tree Manipulation and Visualization},
   year = {2024},
   url = {https://github.com/username/olivetree}
 }
