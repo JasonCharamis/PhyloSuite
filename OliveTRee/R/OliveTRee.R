@@ -1,5 +1,5 @@
 
-#' OliveTree: Advanced Tree Manipulation and Visualization
+#' @title OliveTRee: Advanced Tree Manipulation and Visualization
 #' 
 #' @description
 #' A comprehensive R package that combines and extends functionality from ggtree, ape,
@@ -8,7 +8,7 @@
 #' and robust data handling capabilities.
 #'
 #' @docType package
-#' @name OliveTree
+#' @name OliveTRee
 #' @importFrom ape read.tree write.tree read.nexus extract.clade
 #' @importFrom phytools findMRCA read.newick
 #' @importFrom treeio as.treedata
@@ -17,7 +17,7 @@
 #' @importFrom ggtree geom_tiplab geom_nodelab
 #' @export NULL
 
-#' Load Required Packages
+#' @name .load_packages
 #' 
 #' @description
 #' Checks for required package dependencies and installs missing ones using BiocManager 
@@ -72,7 +72,7 @@ bioconductor_version <- ifelse(getRversion() >= "4.4", "3.19", ifelse(getRversio
 
 #==================================== Reading, Loading and Exporting Trees ====================================#
 
-#' Read Phylogenetic Tree File
+#' @name read_tree
 #' 
 #' @description
 #' Reads a phylogenetic tree from various file formats with automatic bootstrap value detection.
@@ -310,7 +310,6 @@ bootstrap_collapse <- function(tree, cutoff = 50) {
 }
 
 
-
 #' @name print_internal_nodes
 #' @description This function generates a plot of the provided phylogenetic tree with node labels displayed. 
 #'              Optional printing of tip labels matching a user-provided pattern.
@@ -507,9 +506,10 @@ extract_subtree <- function(
 }
 
 
-#' Visualize Phylogenetic Tree with Advanced Customization
-#' 
+#' @name visualize_tree 
+#'  
 #' @description
+#' Visualize Phylogenetic Tree with Advanced Customization
 #' Main visualization function providing comprehensive options for displaying phylogenetic trees.
 #' Supports multiple layouts, bootstrap value display methods, tip label customization, clade highlighting,
 #' and various aesthetic adjustments. Integrates with ggplot2 and ggtree for high-quality visual output.
