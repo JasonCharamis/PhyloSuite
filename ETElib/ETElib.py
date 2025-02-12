@@ -25,6 +25,8 @@ def parse_arguments():
     parser.add_argument('-nf','--names_file', type = str ,help='File with names to replace. Default is second column in tab-separated format.')
     parser.add_argument('-pat','--pattern', type = str ,help='Pattern for selecting node names.')
     parser.add_argument('-al','--astral', action="store_true",help='Option to convert gene trees to ASTRAL input for species tree estimation.')
+    parser.add_argument('-fsize','--fontsize',type=str,help='Font size in visualize_tree function.')
+
     args = parser.parse_args()
 
     if not any(vars(args).values()):
@@ -56,8 +58,10 @@ def main():
                 print ( "Please provide a bootstrap cutoff.")
             
         elif args.visualize:
+            if args.fontsize:
+                    visualize_tree(args.tree, fontsize=args.fontsize)
             if args.layout:
-                visualize_tree(args.tree, layout = args.layout)
+                    visualize_tree(args.tree, layout=args.layout)
             else:
                 visualize_tree(args.tree)
 
@@ -119,7 +123,7 @@ def extract_support_values(tree):
 
     
 # Main visualization function for leaf coloring and bootstrap support
-def visualize_tree(tree, layout = "c", show = True):
+def visualize_tree(tree, layout = "c", fontsize = 2000, show = True):
     
     """
     Visualizes a phylogenetic tree with colored leaves representing species and bootstrap support indicated by circle size.
@@ -171,7 +175,7 @@ def visualize_tree(tree, layout = "c", show = True):
                 species_n = node.name[0:3]
                 
             color_n = species_colors[species_n]               
-            species_face = TextFace(node.name,fgcolor=color_n, fsize=2000,ftype="Arial")
+            species_face = TextFace(node.name,fgcolor=color_n, fsize=fontsize,ftype="Arial")
             node.add_face(species_face, column=1, position='branch-right')
 
         for threshold, col in thresholds.items(): # Bootstrap values in internal nodes represented as circles

@@ -183,32 +183,31 @@ write_newick <- function(
     output = NULL
 ) {
   
+  # Enforce import as 'treedata' object
   tree_obj <- .load_tree_object(tree)
   
-  if (!is.null(tree_obj@data)) {
-    
-    # Copy bootstrap values in the labels of the internal (non-Tip) nodes
-    phylo_data <- treeio::as.treedata(
-      left_join(
-        as_tibble(tree_obj@phylo),
-        as_tibble(tree_obj@data)
-      ) %>%
-        mutate(
-          isTip = ifelse(!is.na(label), TRUE, FALSE)
+  if (!is.null(tree_obj@phylo)) {
+      # Copy bootstrap values in the labels of the internal (non-Tip) nodes
+      phylo_data <- treeio::as.treedata(
+        cross_join(
+          as_tibble(tree_obj@phylo),
+          as_tibble(tree_obj@data)
         ) %>%
-        mutate(
-          label = ifelse(
-            isTip == FALSE,
-            as.character(support),
-            label
-          )
-        ) %>%
-        select(-support)
-      )
-  } else {
-     phylo_data <- tree_obj
-  }
-  
+          mutate(
+            isTip = ifelse(!is.na(label), TRUE, FALSE)
+          ) %>%
+          mutate(
+            label = ifelse(
+              isTip == FALSE,
+              as.character(node.label),
+              label
+            )
+          ) 
+        )
+    } else {
+        phylo_data <- tree_obj
+    }
+
   if (!is.null(output)) {
     ape::write.tree(phy = phylo_data@phylo, output)
   } else {
@@ -247,8 +246,6 @@ export_plot <- function(
     ggsave(
       plot = plot, 
       output_f, 
-      width = 10, 
-      height = 10,
       dpi = dpi
     )
     
@@ -295,13 +292,21 @@ bootstrap_collapse <- function(tree, cutoff = 50) {
       tree_obj@data$support, function (bootstrap) {
         bootstrap <- bootstrap*100
         return(data.frame(bootstrap))
-    })
-  } 
-  
+    }) 
+  } else if (all(tree_obj@data$support <= 10)) {
+      message("Bootstrap values are in scale 0-1. Will be multiplied by 100 to be transferred to a scale of 1-100.")
+      
+      tree_obj@data$support <- sapply(
+        tree_obj@data$support, function (bootstrap) {
+          bootstrap <- bootstrap*10
+          return(data.frame(bootstrap))
+        }) 
+  }
+
   collapsed_tree <- as.treedata(
     as.polytomy(
-      tree_obj, 
-      feature = 'support', 
+      as.phylo(tree_obj), 
+      feature = 'node.label', 
       fun = function(x) as.numeric(x) < cutoff
     )
   )
@@ -478,8 +483,8 @@ extract_subtree <- function(
       stop("Please choose either tip1,tip2 OR taxon_list as identifiers for extracting subtree.")
   }
   
-  if (!("support" %in% colnames(tree_obj@data))) {
-     return(subtree)
+  if (!any(c("support", "node.label") %in% names(tree_obj@phylo))) {
+      return(subtree)
   } else {
       # If node is NOT tip, add the labels in the bs_support column and make the labels NA - mapping according to new node numbering
       subtree_f <- treeio::as.treedata(subtree) %>%
@@ -501,6 +506,7 @@ extract_subtree <- function(
         node = subtree_f@extraInfo$node,
         support = as.numeric(subtree_f@extraInfo$bs_support)
       )
+
       return(subtree_f)
  }
 }
@@ -775,10 +781,12 @@ visualize_tree <- function(
   }
 
   # Manipulate bootstrap values and control if and how to print them
-  if (any(!is.null(tree_obj@data)) && any(!is.na(tree_obj@data))) {
-    if (all(tree_obj@data$support <= 10, na.rm = TRUE) == TRUE) {
+  if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
+    if (all(tree_obj@data$support <= 10, tree_obj@data$node.label <= 10, na.rm = TRUE) == TRUE) {
       warning("Provided bootstrap values were in scale of 1 and were multiplied by 100 to change scales.")
       tree_obj@data$support <- sapply(tree_obj@data$support, function(x) x * 100)
+    } else {
+      tree_obj@data$support <- tree_obj@data$node.label
     }
         
     if (bootstrap_numbers == TRUE) {
