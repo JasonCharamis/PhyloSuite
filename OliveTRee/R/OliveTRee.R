@@ -237,7 +237,10 @@ export_plot <- function(
     plot,
     output = NULL,
     format = 'svg',
-    dpi = 600
+    plot_width = 20,
+    plot_height = 15,
+    dpi = 600,
+    limitsize = FALSE
 ) {
   
   if (!(is.null(output))) {
@@ -245,15 +248,18 @@ export_plot <- function(
 
     ggsave(
       plot = plot, 
-      output_f, 
-      dpi = dpi
+      output_f,
+      width = plot_width,
+      height = plot_width,
+      dpi = dpi,
+      limitsize = limitsize
     )
     
     message <- sprintf("Tree plotted and saved as %s", output_f)
-    message(message)
+    message("\033[34m\033[1m\033[30m",message)
     
   } else {
-      message("Plot will not be saved! Provide an output = <OUTPUT_NAME> for saving the output plot.")
+      message("\033[34m\033[1m\033[30m","Plot will not be saved! Provide an output = <OUTPUT_NAME> for saving the output plot.")
   }
   
   return(plot)
@@ -543,7 +549,7 @@ extract_subtree <- function(
 #' @param legend_spacing_x,legend_spacing_y Legend spacing in cm (default: 0.5)
 #' @param legend_key_width Key width in cm (default: 1)
 #' @param legend_title_hjust Title horizontal justification (default: 0.5)
-#' @param legend_name Legend title (default: "")
+#' @param legend_title Legend title (default: "")
 #' @param tip_shape_size Size of tip shapes (default: 3)
 #' @param tip_label_size Size of tip labels (default: 2)
 #' @param bootstrap_numbers Logical; show bootstrap as numbers (default: FALSE)
@@ -584,7 +590,7 @@ extract_subtree <- function(
 #' visualize_tree(tree,
 #'   color = c("Species1" = "red", "Species2" = "blue"),
 #'   shape = c("Species1" = "circle", "Species2" = "star"),
-#'   legend_name = "Species"
+#'   legend_title = "Species"
 #' )
 #' 
 #' # Tree with highlighted clades
@@ -623,7 +629,7 @@ visualize_tree <- function(
     legend_spacing_y = 0.5,
     legend_key_width = 1,
     legend_title_hjust = 0.5,
-    legend_name = "",
+    legend_title = "",
     tip_shape_size = 3,
     tip_label_size = 2,
     bootstrap_numbers = FALSE,
@@ -643,6 +649,7 @@ visualize_tree <- function(
     highlight_clades = NULL,
     highlight_nodes = NULL,
     highlight_colors = NULL,
+    highlight_border_color = "black",
     tip_fill_color = "lightgrey",
     tip_border_color = "white",
     highlight_alpha = 0.3,
@@ -651,7 +658,9 @@ visualize_tree <- function(
     highlight_linewidth = 0.9,
     output = NULL,
     format = 'svg',
-    dpi = 600
+    dpi = 600,
+    plot_width = 20,
+    plot_height = 15
 ) {
   # Load tree with option to print branch length and/or flip nodes
   tree_obj <- .load_tree_object(tree)
@@ -681,6 +690,11 @@ visualize_tree <- function(
   } else {
       plot <- ggtree(tree_obj, width = tree_linewidth, layout = form)
   }
+  
+  
+  # Enforce graphic parameters
+  plot <- plot + 
+          geom_tree(size = 0.5)
 
   # Handle highlight_nodes if provided (highlight_tree functionality)
   if (!is.null(highlight_nodes)) {
@@ -712,26 +726,27 @@ visualize_tree <- function(
         }
       })
     )
-
-    # Get actual groups present in the data
-    actual_groups <- unique(plot$data$group[!is.na(plot$data$group)])
     
+    # Get actual groups present in the data
+    #actual_groups <- unique(plot$data$group[!is.na(plot$data$group)])
+
     # Filter highlight data to only include groups that exist in the data
-    highlight_filtered <- highlight[highlight$Group %in% actual_groups, ]
+    #highlight_filtered <- highlight[highlight$Group %in% actual_groups, ]
 
     # Add highlighting
     plot <- plot +
       geom_hilight(
         data = highlight,
-        aes(node = Label, fill = Color),
+        aes(node = Label, fill = Group), 
+        color = highlight_border_color,
         alpha = highlight_alpha,
         extend = highlight_extend,
         linetype = highlight_linetype,
         linewidth = highlight_linewidth
       ) + scale_fill_manual(
-            values = setNames(highlight_filtered$Color, highlight_filtered$Group),
-            labels = gsub("_", " ", highlight_filtered$Group),
-            name = legend_name
+            values = setNames(highlight$Color, highlight$Group),
+            labels = gsub("_", " ", highlight$Group),
+            name = legend_title
           )
 
     } else if (!is.null(highlight_clades)) { # Handle highlight_clades if provided (group_descendants functionality)
@@ -776,15 +791,19 @@ visualize_tree <- function(
       scale_color_manual(
         values = setNames(highlight_filtered$Color, highlight_filtered$Group),
         labels = gsub("_", " ", highlight_filtered$Group),
-        name = legend_name
+        name = legend_title
       )
   }
 
   # Manipulate bootstrap values and control if and how to print them
-  if (any(!is.null(tree_obj@data$support)) && any(!is.na(tree_obj@data$support))) {
+  if (any(!is.null(tree_obj@data$support)) || any(!is.na(tree_obj@data$support)) || any(!is.null(tree_obj@phylo$node.label)) || any(!is.na(tree_obj@phylo$node.label)) ) {
     if (all(tree_obj@data$support <= 10, tree_obj@data$node.label <= 10, na.rm = TRUE) == TRUE) {
       warning("Provided bootstrap values were in scale of 1 and were multiplied by 100 to change scales.")
-      tree_obj@data$support <- sapply(tree_obj@data$support, function(x) x * 100)
+      if (!is.na(tree_obj@data$support)) {
+        tree_obj@data$support <- sapply(tree_obj@data$support, function(x) x * 100)
+      } else if (!is.na(tree_obj@phylo$node.label)) {
+        tree_obj@data$support <- sapply(tree_obj@phylo$node.label, function(x) x * 100)
+      }
     } else {
       tree_obj@data$support <- tree_obj@data$node.label
     }
@@ -792,10 +811,12 @@ visualize_tree <- function(
     if (bootstrap_numbers == TRUE) {
       plot <- plot + geom_nodelab(
         aes(label = round(support, 2)),
+        nudge_x = bootstrap_number_nudge_x,
         nudge_y = bootstrap_number_nudge_y,
-        size = node_label_size
+        size = node_label_size,
+        family = font
       )
-      print("Bootstrap values displayed as labels.")
+      message("\033[34m\033[1m\033[30m", "Bootstrap values displayed as labels.")
       
     } else if (bootstrap_circles == TRUE) {
 
@@ -864,6 +885,7 @@ visualize_tree <- function(
             nudge_x = nudge_x_label,
             family = font
           )
+       
       } else {
         matching_labels <- unlist(
           sapply(pattern_id, function(pattern) {
@@ -959,7 +981,7 @@ visualize_tree <- function(
           )
           
           if (length(missing_species_color) > 0) {
-            warning(paste("Color mapping not found for the following species: ", paste(missing_species_color, collapse = ", ")))
+            warning("\033[34m\033[1m\033[30m", paste("Color mapping not found for the following species: ", paste(missing_species_color, collapse = ", ")))
           }
           
           tip_colors_df <- data.frame(
@@ -1071,26 +1093,39 @@ visualize_tree <- function(
             size = tip_shape_size,
             color = "black"
           ) + 
-            scale_fill_identity(
-              breaks = unique(tip_breaks = unique(tip_mapping_df$s_color[!is.na(tip_mapping_df$s_color)])),
-              labels = unique(tip_mapping_df$taxa_group[!is.na(tip_mapping_df$s_color)]),
-              name = legend_name,
-              guide = guide_legend(
-                override.aes = list(
-                  starshape = unique(tip_mapping_df$s_shape[!is.na(tip_mapping_df$s_shape)])
+          
+          scale_fill_identity(
+            name = legend_title,
+            breaks = unique(tip_mapping_df$s_color[!is.na(tip_mapping_df$s_color)]),
+            labels = unique(tip_mapping_df$taxa_group[!is.na(tip_mapping_df$s_color)]),
+            guide = guide_legend(
+               override.aes = list(
+                  # In starshapes associated with tips and colors
+                   starshape = tip_mapping_df$s_shape[match(unique(tip_mapping_df$s_color), tip_mapping_df$s_color)]
+             ),
+              theme = theme(
+                legend.position = legend_position,
+                legend.direction = legend_orientation,
+                legend.text = element_text(
+                  face = legend_font_face,
+                  family = font,
+                  size = legend_fontsize,
+                  color = "black"
                 ),
-                theme = theme(
-                  legend.position = legend_position,
-                  legend.direction = legend_orientation,
-                  legend.text = element_text(face = legend_font_face, family = font, size = legend_fontsize, color = "black"),
-                  legend.key.size = unit(legend_key_size, "cm"),
-                  legend.spacing.x = unit(legend_spacing_x, "cm"),
-                  legend.spacing.y = unit(legend_spacing_y, "cm"),
-                  legend.key.width = unit(legend_key_width, "cm"), 
-                  legend.title = element_text(face = legend_title_font_face, family = font, size = legend_title_fontsize,  hjust = legend_title_hjust)
+                legend.key.size = unit(legend_key_size, "pt"),
+                legend.key.spacing.x = unit(legend_spacing_x, "pt"),
+                legend.key.spacing.y = unit(legend_spacing_y, "pt"),
+                legend.key.width = unit(legend_key_width, "pt"),
+                legend.title = element_text(
+                  face = legend_title_font_face,
+                  family = font,
+                  size = legend_title_fontsize,
+                  hjust = legend_title_hjust
                 )
-                )
-                ) + scale_starshape_identity(guide = "none")
+              )
+            )
+          ) + scale_starshape_identity(guide = "none")
+
         } else if (!is.null(color) && is.null(shape)) {
           
           plot <- plot %<+% tip_colors_df
@@ -1102,20 +1137,20 @@ visualize_tree <- function(
             ),
             color = "black",
             starshape = "circle",
-            size = tip_shape_size,
+            size = tip_shape_size
           ) + 
             scale_fill_identity(
               breaks = tip_colors_df$s_color,
               labels = gsub("_", " ", tip_colors_df$taxa_colors),
-              name = legend_name,
+              name = legend_title,
               guide = guide_legend(
                 theme = theme(
                   legend.position = 'none',
                   legend.direction = legend_orientation,
                   legend.text = element_text(face = legend_font_face, family = font, size = legend_fontsize, color = "black"),
                   legend.key.size = unit(legend_key_size, "cm"),
-                  legend.spacing.x = unit(legend_spacing_x, "cm"),
-                  legend.spacing.y = unit(legend_spacing_y, "cm"),
+                  legend.key.spacing.x = unit(legend_spacing_x, "cm"),
+                  legend.key.spacing.y = unit(legend_spacing_y, "cm"),
                   legend.key.width = unit(legend_key_width, "cm"), 
                   legend.title = element_text(face = legend_title_font_face, family = font, size = legend_title_fontsize, hjust = legend_title_hjust)
                 )
@@ -1138,17 +1173,17 @@ visualize_tree <- function(
             size = tip_shape_size
           ) + 
             scale_starshape_identity(
-              labels = gsub("_", " ", tip_shapes_df$taxa_shapes),
-              breaks = tip_shapes_df$s_shape,
-              name = legend_name,
+              labels = unique(names(tip_shapes_df$s_shape)),
+              breaks = unique(tip_shapes_df$s_shape),
+              name = legend_title,
               guide = guide_legend(
                 theme = theme(
                   legend.position = legend_position,
                   legend.direction = legend_orientation,
                   legend.text = element_text(face = legend_font_face, family = font, size = legend_fontsize, color = "black"),
                   legend.key.size = unit(legend_key_size, "cm"),
-                  legend.spacing.x = unit(legend_spacing_x, "cm"),
-                  legend.spacing.y = unit(legend_spacing_y, "cm"),
+                  legend.key.spacing.x = unit(legend_spacing_x, "cm"),
+                  legend.key.spacing.y = unit(legend_spacing_y, "cm"),
                   legend.key.width = unit(legend_key_width, "cm"), 
                   legend.title = element_text(face = legend_title_font_face, family = font, size = legend_title_fontsize, hjust = legend_title_hjust)
                 )
@@ -1193,8 +1228,9 @@ visualize_tree <- function(
         fill = 'black',
         offset.text = labeldist,
         barsize = 0.9,
-        offset.bar = bardist,
-        clade_label_size = clade_label_size
+        offset = bardist,
+        clade_label_size = clade_label_size,
+        family = font
       )
     }
   }
@@ -1226,7 +1262,9 @@ visualize_tree <- function(
     plot = plot,
     output = output,
     format = format,
-    dpi = dpi
+    dpi = dpi,
+    plot_width = plot_width,
+    plot_height = plot_height
   )
  
 }
