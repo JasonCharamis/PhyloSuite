@@ -62,7 +62,8 @@ dependencies <- c(
   "ggstar",
   "ggtree",
   "dplyr",
-  "ggplot2"
+  "ggplot2",
+  "ggnewscale"
 )
 
 .load_packages(dependencies)
@@ -551,8 +552,10 @@ extract_subtree <- function(
 #' @param node1,node2 Node IDs for flipping based on MRCA
 #' @param tiplabels Logical; display tip labels (default: FALSE)
 #' @param pattern_id Pattern to match for selective tip label display
-#' @param color Named vector mapping taxa to colors
-#' @param shape Named vector mapping taxa to ggstar shapes
+#' @param tip_fill_color Named vector mapping taxa to colors
+#' @param tip_shape_color Named vector mapping taxa to ggstar shapes
+#' @param tip_shape_size Size of tip shapes (default: 3)
+#' @param tip_border_color Border color for tip shapes (default: "grey")
 #' @param taxon_group_separator Character separator in tip labels (default: "_")
 #' @param taxon_group_field Position of taxon name in label (default: 1)
 #' @param font Font family (default: "Arial")
@@ -568,7 +571,6 @@ extract_subtree <- function(
 #' @param legend_key_width Key width in cm (default: 1)
 #' @param legend_title_hjust Title horizontal justification (default: 0.5)
 #' @param legend_title Legend title (default: "")
-#' @param tip_shape_size Size of tip shapes (default: 3)
 #' @param tip_label_size Size of tip labels (default: 2)
 #' @param bootstrap_numbers Logical; show bootstrap as numbers (default: FALSE)
 #' @param bootstrap_number_nudge_x,bootstrap_number_nudge_y Offset for bootstrap numbers
@@ -582,10 +584,9 @@ extract_subtree <- function(
 #' @param labeldist,bardist Distance of clade labels/bars from nodes (default: 1)
 #' @param clade_label_size Size of clade labels (default: 3)
 #' @param tree_linewidth Width of tree branches (default: 0.5)
-#' @param highlight_clades,highlight_nodes Nodes to highlight
-#' @param highlight_colors Colors for highlighted regions
-#' @param tip_fill_color Fill color for tip shapes (default: "lightgrey")
-#' @param tip_border_color Border color for tip shapes (default: "white")
+#' @param highlight_nodes Nodes to highlight using geom_hilight
+#' @param highlight_clades Branches of nodes and descendants to highlight using groupOTU
+#' @param highlight_colors Colors to be used for coloring highlight_nodes or highlight_clades
 #' @param highlight_alpha Transparency of highlights (default: 0.3)
 #' @param highlight_extend Extension of highlights (default: 0.10)
 #' @param highlight_linetype Line type for highlights (default: 1)
@@ -631,8 +632,9 @@ visualize_tree <- function(
   node2 = NULL,
   tiplabels = FALSE,
   pattern_id = NULL,
-  color = NULL,
-  shape = NULL,
+  tip_fill_color = NULL,
+  tip_shape = NULL,
+  tip_border_color = "grey",
   taxon_group_separator = "_",
   taxon_group_field = 1,
   font = "Arial",
@@ -670,8 +672,6 @@ visualize_tree <- function(
   highlight_colors = NULL,
   highlight_legend_title = "Group",
   highlight_border_color = "black",
-  tip_fill_color = "lightgrey",
-  tip_border_color = "white",
   highlight_alpha = 0.3,
   highlight_extend = 0.10,
   highlight_linetype = 1,
@@ -770,16 +770,16 @@ visualize_tree <- function(
     plot <- plot +
       geom_hilight(
         data = highlight,
-        aes(node = Label, color = Group),
+        aes(node = Label, fill = Group),
         color = highlight_border_color,
         alpha = highlight_alpha,
         extend = highlight_extend,
         linetype = highlight_linetype,
         linewidth = highlight_linewidth
       ) +
-      scale_color_manual(
+      scale_fill_manual(
         name = highlight_legend_title,
-        values = setNames(highlight$Color, highlight$Group), # Ensure node color mapping
+        values = highlight$Color,
         guide = "legend"
       )
   } else if (!is.null(highlight_clades)) {
@@ -957,8 +957,8 @@ visualize_tree <- function(
         })
       )
 
-      if (!is.null(names(color))) {
-        color <- color
+      if (!is.null(names(tip_fill_color))) {
+        tip_fill_color <- tip_fill_color
       } else {
         warning(
           "color has not been defined correctly.\nIt is an associative vector where names are taxon_names and values are colors.\n
@@ -973,8 +973,8 @@ visualize_tree <- function(
         matching_dict <- data.frame(
           label = matching_labels,
           color = ifelse(
-            !is.na(color[matching_labels]),
-            color[matching_labels],
+            !is.na(tip_fill_color[matching_labels]),
+            tip_fill_color[matching_labels],
             "black"
           ),
           matching_flag = TRUE
@@ -987,7 +987,11 @@ visualize_tree <- function(
             aes(
               subset = isTip,
               label = label,
-              color = ifelse(matching_flag == TRUE, color, NA),
+              tip_fill_color = ifelse(
+                matching_flag == TRUE,
+                tip_fill_color,
+                NA
+              ),
               family = font
             ),
             size = tip_label_size,
@@ -1022,7 +1026,7 @@ visualize_tree <- function(
   }
 
   # Visualize phylogenetic tree with color and shape mappings
-  if (!is.null(color) || !is.null(shape)) {
+  if (!is.null(tip_fill_color) || !is.null(tip_shape)) {
     # Use the taxon group separator to generate mappings
     if (!is.null(taxon_group_separator)) {
       # First field in tip label corresponds to the taxon name (Default: TAXON_NAME|taxon_group_separator|OTHER_INFO)
@@ -1052,10 +1056,10 @@ visualize_tree <- function(
       tip_labels <- sapply(taxa_dict, function(entry) entry$tip_label)
       taxa_names <- sapply(taxa_dict, function(entry) entry$group)
 
-      if (!is.null(color)) {
+      if (!is.null(tip_fill_color)) {
         missing_species_color <- setdiff(
           unique(sapply(taxa_dict, function(entry) entry$group)),
-          names(color)
+          names(tip_fill_color)
         )
 
         if (length(missing_species_color) > 0) {
@@ -1071,19 +1075,19 @@ visualize_tree <- function(
         tip_colors_df <- data.frame(
           label = tip_labels,
           taxa_colors = taxa_names,
-          s_color = color[
+          s_color = tip_fill_color[
             match(
               sapply(
                 taxa_dict,
                 function(entry) entry$group
               ),
-              names(color)
+              names(tip_fill_color)
             )
           ]
         )
       }
 
-      if (!is.null(shape)) {
+      if (!is.null(tip_shape)) {
         # Associative vector of starshapes and numbers
         starshape_table <- c(
           "pentagram" = 1,
@@ -1119,27 +1123,24 @@ visualize_tree <- function(
           "semicircle" = 31
         )
 
-        lapply(names(shape), function(name) {
-          if (!(shape[name] %in% names(starshape_table))) {
+        lapply(names(tip_shape), function(name) {
+          if (!(tip_shape[name] %in% names(starshape_table))) {
             print(show_starshapes())
-            stop(cat(shape[name], "is not found among ggstar's starshapes."))
+            stop(cat(
+              tip_shape[name],
+              "is not found among ggstar's starshapes."
+            ))
           }
         })
 
-        if (tiplabels == TRUE) {
-          warning(
-            "If both tip labels and shapes are enabled, shape mapping will override the text tip labels provided."
-          )
-        }
-
         missing_taxa_shape <- setdiff(
           unique(sapply(taxa_dict, function(entry) entry$group)),
-          names(shape)
+          names(tip_shape)
         )
 
         if (length(missing_taxa_shape) > 0) {
           warning(paste(
-            "Shape mapping not found for the following species: ",
+            "Tip shape mapping not found for the following taxon: ",
             paste(missing_taxa_shape, collapse = ", ")
           ))
         }
@@ -1147,15 +1148,15 @@ visualize_tree <- function(
         tip_shapes_df <- data.frame(
           label = tip_labels,
           taxa_shapes = taxa_names,
-          s_shape = shape[match(
+          s_shape = tip_shape[match(
             sapply(taxa_dict, function(entry) entry$group),
-            names(shape)
+            names(tip_shape)
           )]
         )
       }
 
       # Add ggtree aesthetics based on provided arguments
-      if (!is.null(color) && !is.null(shape)) {
+      if (!is.null(tip_fill_color) && !is.null(tip_shape)) {
         # Function to extract group from tip label
         extract_group <- function(label) {
           if (!is.null(taxon_group_separator)) {
@@ -1173,12 +1174,14 @@ visualize_tree <- function(
           stringsAsFactors = FALSE
         )
 
-        tip_mapping_df$s_color <- color[tip_mapping_df$taxa_group]
-        tip_mapping_df$s_shape <- shape[tip_mapping_df$taxa_group]
+        tip_mapping_df$s_color <- tip_fill_color[tip_mapping_df$taxa_group]
+        tip_mapping_df$s_shape <- tip_shape[tip_mapping_df$taxa_group]
 
         plot <- plot %<+% tip_mapping_df
 
         plot <- plot +
+          # a new scale is added here to ensure that if both geom_highlight (highlighting parts of the tree) and tip_fill (tip fill coloring), if enabled by the user, will not conflict
+          new_scale_fill() +
           geom_star(
             mapping = aes(
               subset = isTip,
@@ -1227,10 +1230,12 @@ visualize_tree <- function(
             )
           ) +
           scale_starshape_identity(guide = "none")
-      } else if (!is.null(color) && is.null(shape)) {
+      } else if (!is.null(tip_fill_color) && is.null(tip_shape)) {
         plot <- plot %<+% tip_colors_df
 
         plot <- plot +
+          # a new scale is added here to ensure that if both geom_highlight (highlighting parts of the tree) and tip_fill (tip fill coloring), if enabled by the user, will not conflict
+          new_scale_fill() +
           geom_star(
             mapping = aes(
               subset = isTip,
@@ -1267,11 +1272,11 @@ visualize_tree <- function(
               )
             )
           )
-      } else if (is.null(color) && !is.null(shape)) {
+      } else if (is.null(tip_fill_color) && !is.null(tip_shape)) {
         # Translate shapes from words to numbers
-        tip_shapes_df$s_shape <- starshape_table[shape[match(
+        tip_shapes_df$s_shape <- starshape_table[tip_shape[match(
           sapply(taxa_dict, function(entry) entry$group),
-          names(shape)
+          names(tip_shape)
         )]]
 
         plot <- plot %<+% tip_shapes_df
