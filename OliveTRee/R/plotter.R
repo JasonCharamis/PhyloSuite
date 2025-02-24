@@ -11,18 +11,18 @@
 
 # Function to check if a package is installed, and if not, install it.
 # Function to install or load a package
-load_packages <- function( tools ) {
-  tmp <- as.data.frame(installed.packages()) 
+load_packages <- function(tools) {
+  tmp <- as.data.frame(installed.packages())
   max_version <- max(as.numeric(substr(tmp$Built, 1, 1)))
-  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ] 
-  
-  for ( pkg in tools ) {
-    if ( pkg %in% tmp$Package ) {
-      library (pkg, character.only = TRUE)
+  tmp <- tmp[as.numeric(substr(tmp$Built, 1, 1)) == max_version, ]
+
+  for (pkg in tools) {
+    if (pkg %in% tmp$Package) {
+      library(pkg, character.only = TRUE)
     } else {
       print(sprintf("%s %s", pkg, "is not installed. Installing it!"))
-      
-      if ( pkg %in% BiocManager::available(pkg) ) {
+
+      if (pkg %in% BiocManager::available(pkg)) {
         BiocManager::install(pkg, dependencies = TRUE, update = TRUE)
       } else {
         install.packages(pkg, dependencies = TRUE, ask = FALSE)
@@ -36,21 +36,31 @@ dependencies <- c("ggplot2", "ggplotify", "gridExtra")
 load_packages(dependencies)
 
 
-multipanel <- function ( horizontal = "T", ... ) {
+multipanel <- function(horizontal = "T", ...) {
   plots <- list(...)
-  
+
   plots <- lapply(plots, function(p) {
-      ggplotGrob(p)
+    ggplotGrob(p)
   })
-  
+
   if (!all(sapply(plots, inherits, "grob"))) {
     stop("All arguments must be grid objects (grobs)")
   }
-  
-  if (any( horizontal == TRUE)) { # Arrange horizontally
-    multi_panel_figure <- grid.arrange(grobs = plots, ncol = length(plots), nrow = 1)
-  } else { # Arrange vertically
-    multi_panel_figure <- grid.arrange(grobs = plots, nrow = length(plots), ncol = 1)
+
+  if (any(horizontal == TRUE)) {
+    # Arrange horizontally
+    multi_panel_figure <- grid.arrange(
+      grobs = plots,
+      ncol = length(plots),
+      nrow = 1
+    )
+  } else {
+    # Arrange vertically
+    multi_panel_figure <- grid.arrange(
+      grobs = plots,
+      nrow = length(plots),
+      ncol = 1
+    )
   }
-  return (multi_panel_figure)
+  return(multi_panel_figure)
 }
